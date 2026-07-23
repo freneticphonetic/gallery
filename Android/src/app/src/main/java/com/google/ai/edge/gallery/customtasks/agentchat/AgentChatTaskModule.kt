@@ -127,8 +127,8 @@ class AgentChatTask @Inject constructor() : CustomTask {
       iconVectorResourceId = R.drawable.agent,
       newFeature = true,
       models = mutableListOf(),
-      description = "Chat with on-device large language models with skills and tools",
-      shortDescription = "Complete agentic tasks with chat",
+      description = "Chat with an on-device model using local skills",
+      shortDescription = "Use local skills in chat",
       docUrl = "https://github.com/google-ai-edge/LiteRT-LM/blob/main/kotlin/README.md",
       sourceCodeUrl =
         "https://github.com/google-ai-edge/gallery/blob/main/Android/src/app/src/main/java/com/google/ai/edge/gallery/customtasks/agentchat/",
@@ -146,14 +146,11 @@ class AgentChatTask @Inject constructor() : CustomTask {
     val initialSystemPrompt = systemInstruction?.toString() ?: task.defaultSystemPrompt
     coroutineScope.launch(Dispatchers.Default) {
       val skillsJob = launch { agentTools.skillManagerViewModel.loadSkills() }
-      val mcpJob = launch { agentTools.mcpManagerViewModel.loadMcpServers() }
       skillsJob.join()
-      mcpJob.join()
 
-      // Determine base system prompt based on whether MCP tools are enabled.
-      val toolsPrompt = agentTools.mcpManagerViewModel.getToolsPrompt()
-      val baseSystemPrompt =
-        getEffectiveBaseSystemPrompt(initialSystemPrompt, toolsPrompt.isNotEmpty())
+      // Remote MCP servers are deliberately unavailable in the offline build.
+      val toolsPrompt = ""
+      val baseSystemPrompt = getEffectiveBaseSystemPrompt(initialSystemPrompt, false)
 
       val finalSystemInstruction =
         injectSkillsAndMcpTools(

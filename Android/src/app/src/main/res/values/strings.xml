@@ -28,10 +28,10 @@
   <string name="model_not_support_audio_message" translatable="true">The current model does not support audio input.</string>
   <string name="aichat_initializing_title" translatable="true">Initializing model</string>
   <string name="aichat_initializing_content" translatable="true">Sit tight, this can take up to 1 minute</string>
-  <string name="app_intro" translatable="true">Explore a world of amazing on-device models from</string>
-  <string name="app_name" translatable="true">Google AI Edge Gallery</string>
-  <string name="app_name_first_part" translatable="true">Google AI</string>
-  <string name="app_name_second_part" translatable="true">Edge Gallery</string>
+  <string name="app_intro" translatable="true">Private, on-device AI with models you control</string>
+  <string name="app_name" translatable="true">Offline AI Gallery</string>
+  <string name="app_name_first_part" translatable="true">Offline AI</string>
+  <string name="app_name_second_part" translatable="true">Gallery</string>
   <string name="askimage_emptystate_title" translatable="true">Ask Image</string>
   <string name="askimage_emptystate_content" translatable="true">To get started, tap the + below to add an image (max 10 images per chat) and type a prompt to ask a question about it!</string>
   <string name="askimage_emptystate_content_aicore" translatable="true">To get started, tap the + below to add an image (max 1 image per chat) and type a prompt to ask a question about it!</string>
@@ -94,7 +94,7 @@
   <string name="drawer_settings_label" translatable="true">Settings</string>
   <string name="drawer_settings_description" translatable="true">Manage application settings</string>
   <string name="drawer_models_label" translatable="true">Models</string>
-  <string name="drawer_models_description" translatable="true">Browse, try, and benchmark models</string>
+  <string name="drawer_models_description" translatable="true">Import and manage local models</string>
   <string name="drawer_notifications_label" translatable="true">Notifications</string>
   <string name="drawer_notifications_description" translatable="true">View scheduled notifications</string>
   <string name="notifications_title" translatable="true">Notifications</string>
@@ -189,7 +189,7 @@
   <string name="test" translatable="true">Test</string>
   <string name="text_image_generation_text_field_placeholder" translatable="true">Type prompt…</string>
   <string name="text_input_placeholder_llm_chat" translatable="true">Type prompt…</string>
-  <string name="tos_dialog_title_app" translatable="true">Welcome to Google AI Edge Gallery</string>
+  <string name="tos_dialog_title_app" translatable="true">Welcome to Offline AI Gallery</string>
   <string name="tos_dialog_title_gemma" translatable="true">Gemma Terms of Use</string>
   <string name="tos_dialog_accept_and_continue_button_label" translatable="true">Accept &amp; continue</string>
   <string name="tos_dialog_agree_and_continue_button_label" translatable="true">Agree &amp; continue</string>
@@ -240,7 +240,7 @@
   <string name="mobile_actions_challenge_subtitle" translatable="true">Build it to play it!</string>
   <string name="mobile_actions_challenge_description" translatable="true">This demo is locked. To unlock the Mobile Actions agent, you need to compile the model yourself using our open-source recipe.</string>
   <string name="mobile_actions_challenge_instructions_title" translatable="true">Instructions:</string>
-  <string name="mobile_actions_challenge_instruction_1" translatable="true">1. <![CDATA[<b>On your computer</b>]]>, open <![CDATA[<a href="https://ai.google.dev/gemma/docs/mobile-actions">this guide</a>]]></string>
+  <string name="mobile_actions_challenge_instruction_1" translatable="true">1. Choose a compatible local model.</string>
   <string name="mobile_actions_challenge_instruction_2" translatable="true">2. Follow the instructions to fine tune the model and convert it to .litertlm format.</string>
   <string name="mobile_actions_challenge_instruction_3" translatable="true">3. Transfer the file to this phone.</string>
   <string name="mobile_actions_challenge_instruction_4" translatable="true">4. Tap <![CDATA[<b>Load Model</b>]]> below to unlock the demo.</string>
@@ -268,7 +268,7 @@
   <string name="add_skill_dialog_subtitle_from_local_import" translatable="true">Please first \"adb push\" the whole skill directory to /sdcard/Download</string>
   <string name="add_skill_manual_input_sheet_title" translatable="true">Create a skill</string>
   <string name="agent_skills" translatable="true">Agent Skills</string>
-  <string name="disclaimer_dialog_content" translatable="true">Third-party skills are not authored or endorsed by Google. Google is not responsible for their contents, security, or data handling practices.\n\nPlease exercise caution before providing sensitive information, such as personal identification, tokens, or API keys.\n\nAny use of an Agent Skill is subject to the applicable terms for that Skill.</string>
+  <string name="disclaimer_dialog_content" translatable="true">Locally imported skills are third-party code. Review their contents before enabling them and avoid providing sensitive information, tokens, or API keys.</string>
   <string name="disclaimer_dialog_title" translatable="true">Add third-party skill</string>
   <string name="disclaimer_dialog_agree" translatable="true">Agree</string>
   <string name="delete_script_dialog_title" translatable="true">Delete script</string>
@@ -342,7 +342,7 @@
   <string name="mcp_tool_revoke_permission_content" translatable="true">Are you sure you want to revoke permission to automatically call this tool?</string>
   <string name="manage_mcp_servers" translatable="true">Manage MCP servers</string>
   <string name="add_mcp_server" translatable="true">Add MCP server</string>
-  <string name="learn_more_about_mcp" translatable="true">Learn more about MCP in Google AI Edge Gallery</string>
+  <string name="learn_more_about_mcp" translatable="true">Learn more about MCP</string>
   <string name="learn_more_about_mcp_short" translatable="true">Learn more</string>
   <string name="search_mcp_server" translatable="true">Search for an MCP server</string>
   <plurals name="mcp_servers_count" translatable="true">
@@ -362,7 +362,7 @@
   <string name="mcp_tool_description" translatable="true">Description</string>
   <string name="mcp_tool_schema" translatable="true">Schema</string>
   <string name="mcp_disclaimer_dialog_title" translatable="true">Add third-party MCP</string>
-  <string name="mcp_disclaimer_dialog_content" translatable="true">Third-party MCPs are not authored or endorsed by Google. Google is not responsible for their contents, security, or data handling practices.\n\nPlease exercise caution before providing sensitive information, such as personal identification, tokens, or API keys.\n\nAny use of an MCP is subject to the applicable terms for that MCP.</string>
+  <string name="mcp_disclaimer_dialog_content" translatable="true">Remote MCP servers are unavailable in this offline build.</string>
   <string name="mcp_server_duplicate_title" translatable="true">Duplicate MCP server</string>
   <string name="mcp_server_duplicate_content" translatable="true">This MCP server URL is already added.</string>
   <string name="mcp_server_authorization" translatable="true">Authorization</string>
@@ -388,12 +388,6 @@
 
   <!-- Strings for model import dialog  [CHAR LIMIT=NONE] -->
   <string name="import_model_terms_subtitle" translatable="true" description="Subtitle in the import model bottom sheet reminding users to adhere to separate model terms.">You are responsible for adhering to any separate terms applicable to models.</string>
-  <string name="cd_import_model_from_hugging_face" translatable="true" description="Content description spoken when the import model from hugging face button is focused.">Import model from Hugging Face</string>
-  <string name="import_model_from_hugging_face" translatable="true" description="Text label on the button/option to import a model from Hugging Face.">From Hugging Face</string>
-  <string name="import_from_hugging_face_title" translatable="true" description="Title of the dialog box for importing a model from Hugging Face.">Import from Hugging Face</string>
-  <string name="enter_hugging_face_url" translatable="true" description="Prompt text to guide the user to enter a Hugging Face model URL.">"Enter the Hugging Face model file URL, for example: "</string>
-  <string name="enter_hugging_face_url_example_link" translatable="false">https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm</string>
-  <string name="hugging_face_url_placeholder" description="Placeholder text shown inside the text field where the user enters the URL.">https://huggingface.co/…</string>
   <string name="next" translatable="true" description="Button text to navigate to the next step.">Next</string>
   <string name="unsupported_model_title" translatable="true" description="Title of the dialog showing that the imported model type is unsupported.">Unsupported model type</string>
   <string name="unsupported_file_type_error" translatable="true" description="Message informing the user that only .task or .litertlm file formats are supported.">Only \".task\" or \".litertlm\" file type is supported.</string>

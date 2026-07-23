@@ -18,17 +18,11 @@ package com.google.ai.edge.gallery.ui.modelmanager
 
 import android.content.Context
 import android.util.Log
-import androidx.activity.result.ActivityResult
-import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ai.edge.gallery.AppLifecycleProvider
-import com.google.ai.edge.gallery.BuildConfig
 import com.google.ai.edge.gallery.R
-import com.google.ai.edge.gallery.common.ProjectConfig
 import com.google.ai.edge.gallery.common.SystemPromptHelper
-import com.google.ai.edge.gallery.common.getJsonResponse
-import com.google.ai.edge.gallery.common.isAICoreSupported
 import com.google.ai.edge.gallery.customtasks.common.CustomTask
 import com.google.ai.edge.gallery.data.Accelerator
 import com.google.ai.edge.gallery.data.BuiltInTaskId
@@ -37,34 +31,25 @@ import com.google.ai.edge.gallery.data.CategoryInfo
 import com.google.ai.edge.gallery.data.Config
 import com.google.ai.edge.gallery.data.ConfigKeys
 import com.google.ai.edge.gallery.data.DataStoreRepository
-import com.google.ai.edge.gallery.data.DownloadRepository
 import com.google.ai.edge.gallery.data.EMPTY_MODEL
 import com.google.ai.edge.gallery.data.IMPORTS_DIR
 import com.google.ai.edge.gallery.data.Model
-import com.google.ai.edge.gallery.data.ModelAllowlist
 import com.google.ai.edge.gallery.data.ModelCapability
 import com.google.ai.edge.gallery.data.ModelDownloadStatus
 import com.google.ai.edge.gallery.data.ModelDownloadStatusType
 import com.google.ai.edge.gallery.data.NumberSliderConfig
 import com.google.ai.edge.gallery.data.RuntimeType
-import com.google.ai.edge.gallery.data.SOC
 import com.google.ai.edge.gallery.data.SystemPromptRepository
 import com.google.ai.edge.gallery.data.TMP_FILE_EXT
 import com.google.ai.edge.gallery.data.Task
 import com.google.ai.edge.gallery.data.ValueType
 import com.google.ai.edge.gallery.data.createLlmChatConfigs
-import com.google.ai.edge.gallery.proto.AccessTokenData
 import com.google.ai.edge.gallery.proto.ImportedModel
 import com.google.ai.edge.gallery.proto.Theme
-import com.google.ai.edge.gallery.runtime.aicore.AICoreModelHelper
 import com.google.ai.edge.litertlm.Contents
-import com.google.gson.Gson
-import com.google.gson.JsonSyntaxException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
 import javax.inject.Inject
 import kotlin.collections.sortedWith
 import kotlinx.coroutines.Dispatchers
@@ -73,21 +58,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import net.openid.appauth.AuthorizationException
-import net.openid.appauth.AuthorizationRequest
-import net.openid.appauth.AuthorizationResponse
-import net.openid.appauth.AuthorizationService
-import net.openid.appauth.ResponseTypeValues
 
 private const val TAG = "AGModelManagerViewModel"
 private const val TEXT_INPUT_HISTORY_MAX_SIZE = 50
-private const val MODEL_ALLOWLIST_FILENAME = "model_allowlist.json"
-private const val MODEL_ALLOWLIST_TEST_FILENAME = "model_allowlist_test.json"
-private const val ALLOWLIST_BASE_URL =
-  "https://raw.githubusercontent.com/google-ai-edge/gallery/refs/heads/main/model_allowlists"
-
-private const val TEST_MODEL_ALLOW_LIST = ""
-
 data class ModelInitializationStatus(
   val status: ModelInitializationStatusType,
   var error: String = "",
@@ -107,22 +80,6 @@ enum class ModelInitializationStatusType {
   ERROR,
 }
 
-enum class TokenStatus {
-  NOT_STORED,
-  EXPIRED,
-  NOT_EXPIRED,
-}
-
-enum class TokenRequestResultType {
-  FAILED,
-  SUCCEEDED,
-  USER_CANCELLED,
-}
-
-data class TokenStatusAndData(val status: TokenStatus, val data: AccessTokenData?)
-
-data class TokenRequestResult(val status: TokenRequestResultType, val errorMessage: String? = null)
-
 data class ModelManagerUiState(
   /** A list of tasks available in the application. */
   val tasks: List<Task>,
@@ -136,11 +93,11 @@ data class ModelManagerUiState(
   /** A map that tracks the initialization status of each model, indexed by model name. */
   val modelInitializationStatus: Map<String, ModelInitializationStatus>,
 
-  /** Whether the app is loading and processing the model allowlist. */
-  val loadingModelAllowlist: Boolean = true,
+  /** Whether the app is loading models stored on this device. */
+  val loadingModels: Boolean = true,
 
-  /** The error message when loading the model allowlist. */
-  val loadingModelAllowlistError: String = "",
+  /** The error message when loading local models. */
+  val loadingModelsError: String = "",
 
   /** The currently selected model. */
   val selectedModel: Model = EMPTY_MODEL,
@@ -192,7 +149,6 @@ private val PREDEFINED_LLM_TASK_ORDER =
 open class ModelManagerViewModel
 @Inject
 constructor(
-  private val downloadRepository: DownloadRepository,
   val dataStoreRepository: DataStoreRepository,
   private val lifecycleProvider: AppLifecycleProvider,
   private val customTasks: Set<@JvmSuppressWildcards CustomTask>,
@@ -202,17 +158,6 @@ constructor(
   private val externalFilesDir = context.getExternalFilesDir(null)
   protected val _uiState = MutableStateFlow(createEmptyUiState())
   open val uiState = _uiState.asStateFlow()
-
-  private var _allowlistModels: MutableList<Model> = mutableListOf()
-  val allowlistModels: List<Model>
-    get() = _allowlistModels
-
-  val authService = AuthorizationService(context)
-  var curAccessToken: String = ""
-
-  override fun onCleared() {
-    authService.dispose()
-  }
 
   fun getTaskById(id: String): Task? {
     return uiState.value.tasks.find { it.id == id }
@@ -288,72 +233,22 @@ constructor(
   }
 
   open fun downloadModel(task: Task?, model: Model) {
-    // Update status.
     setDownloadStatus(
       curModel = model,
-      status = ModelDownloadStatus(status = ModelDownloadStatusType.IN_PROGRESS),
-    )
-
-    // TODO: b/494029782 - Both litertlm and aicore download and storage should be unified into a
-    // model repository.
-    if (model.runtimeType == RuntimeType.AICORE) {
-      AICoreModelHelper.downloadModel(
-        context = context,
-        coroutineScope = viewModelScope,
-        model = model,
-        onProgress = { downloaded: Long, total: Long ->
-          setDownloadStatus(
-            curModel = model,
-            status =
-              ModelDownloadStatus(
-                status = ModelDownloadStatusType.IN_PROGRESS,
-                receivedBytes = downloaded,
-                totalBytes = total,
-              ),
-          )
-        },
-        onDone = {
-          setDownloadStatus(
-            curModel = model,
-            status =
-              ModelDownloadStatus(
-                status = ModelDownloadStatusType.SUCCEEDED,
-                receivedBytes = model.sizeInBytes,
-                totalBytes = model.sizeInBytes,
-              ),
-          )
-        },
-        onError = { error: String ->
-          setDownloadStatus(
-            curModel = model,
-            status =
-              ModelDownloadStatus(status = ModelDownloadStatusType.FAILED, errorMessage = error),
-          )
-        },
-      )
-      return
-    }
-
-    // Delete the model files first.
-    deleteModel(model = model, removeImportedFromModelList = false)
-
-    // Start to send download request.
-    downloadRepository.downloadModel(
-      task = task,
-      model = model,
-      onStatusUpdated = this::setDownloadStatus,
+      status =
+        ModelDownloadStatus(
+          status = ModelDownloadStatusType.FAILED,
+          errorMessage =
+            "Model downloads are disabled. Import a local .litertlm or .task file from Models.",
+        ),
     )
   }
 
   fun cancelDownloadModel(model: Model) {
-    // TODO: b/494029782 - Both litertlm and aicore download and storage should be unified into a
-    // model repository.
-    // AICore models cannot be deleted from the download repository within the app.
-    if (model.runtimeType == RuntimeType.AICORE) {
-      return
-    }
-    downloadRepository.cancelDownloadModel(model)
-    deleteModel(model = model, removeImportedFromModelList = false)
+    setDownloadStatus(
+      curModel = model,
+      status = ModelDownloadStatus(status = ModelDownloadStatusType.NOT_DOWNLOADED),
+    )
   }
 
   fun deleteModel(model: Model, removeImportedFromModelList: Boolean = true) {
@@ -613,23 +508,6 @@ constructor(
     dataStoreRepository.saveTheme(theme = theme)
   }
 
-  fun getModelUrlResponse(model: Model, accessToken: String? = null): Int {
-    try {
-      val url = URL(model.url)
-      val connection = url.openConnection() as HttpURLConnection
-      if (accessToken != null) {
-        connection.setRequestProperty("Authorization", "Bearer $accessToken")
-      }
-      connection.connect()
-
-      // Report the result.
-      return connection.responseCode
-    } catch (e: Exception) {
-      Log.e(TAG, "$e")
-      return -1
-    }
-  }
-
   fun addImportedLlmModel(info: ImportedModel) {
     Log.d(TAG, "adding imported llm model: $info")
 
@@ -682,16 +560,12 @@ constructor(
     // Add initial status and states.
     val modelDownloadStatus = uiState.value.modelDownloadStatus.toMutableMap()
     val modelInstances = uiState.value.modelInitializationStatus.toMutableMap()
-    if (model.url.isNotEmpty()) {
-      modelDownloadStatus[model.name] = getModelDownloadStatus(model = model)
-    } else {
-      modelDownloadStatus[model.name] =
-        ModelDownloadStatus(
-          status = ModelDownloadStatusType.SUCCEEDED,
-          receivedBytes = info.fileSize,
-          totalBytes = info.fileSize,
-        )
-    }
+    modelDownloadStatus[model.name] =
+      ModelDownloadStatus(
+        status = ModelDownloadStatusType.SUCCEEDED,
+        receivedBytes = info.fileSize,
+        totalBytes = info.fileSize,
+      )
     modelInstances[model.name] =
       ModelInitializationStatus(status = ModelInitializationStatusType.NOT_INITIALIZED)
 
@@ -716,384 +590,45 @@ constructor(
     dataStoreRepository.saveImportedModels(importedModels = importedModels)
   }
 
-  fun getTokenStatusAndData(): TokenStatusAndData {
-    // Try to load token data from DataStore.
-    var tokenStatus = TokenStatus.NOT_STORED
-    Log.d(TAG, "Reading token data from data store...")
-    val tokenData = dataStoreRepository.readAccessTokenData()
-
-    // Token exists.
-    if (tokenData != null && tokenData.accessToken.isNotEmpty()) {
-      Log.d(TAG, "Token exists and loaded.")
-
-      // Check expiration (with 5-minute buffer).
-      val curTs = System.currentTimeMillis()
-      val expirationTs = tokenData.expiresAtMs - 5 * 60
-      Log.d(
-        TAG,
-        "Checking whether token has expired or not. Current ts: $curTs, expires at: $expirationTs",
-      )
-      if (curTs >= expirationTs) {
-        Log.d(TAG, "Token expired!")
-        tokenStatus = TokenStatus.EXPIRED
-      } else {
-        Log.d(TAG, "Token not expired.")
-        tokenStatus = TokenStatus.NOT_EXPIRED
-        curAccessToken = tokenData.accessToken
-      }
-    } else {
-      Log.d(TAG, "Token doesn't exists.")
-    }
-
-    return TokenStatusAndData(status = tokenStatus, data = tokenData)
-  }
-
-  fun getAuthorizationRequest(): AuthorizationRequest {
-    return AuthorizationRequest.Builder(
-        ProjectConfig.authServiceConfig,
-        ProjectConfig.clientId,
-        ResponseTypeValues.CODE,
-        ProjectConfig.redirectUri.toUri(),
-      )
-      .setScope("read-repos")
-      .build()
-  }
-
-  fun handleAuthResult(result: ActivityResult, onTokenRequested: (TokenRequestResult) -> Unit) {
-    val dataIntent = result.data
-    if (dataIntent == null) {
-      onTokenRequested(
-        TokenRequestResult(
-          status = TokenRequestResultType.FAILED,
-          errorMessage = "Empty auth result",
-        )
-      )
-      return
-    }
-
-    val response = AuthorizationResponse.fromIntent(dataIntent)
-    val exception = AuthorizationException.fromIntent(dataIntent)
-
-    when {
-      response?.authorizationCode != null -> {
-        // Authorization successful, exchange the code for tokens
-        var errorMessage: String? = null
-        authService.performTokenRequest(response.createTokenExchangeRequest()) {
-          tokenResponse,
-          tokenEx ->
-          if (tokenResponse != null) {
-            if (tokenResponse.accessToken == null) {
-              errorMessage = "Empty access token"
-            } else if (tokenResponse.refreshToken == null) {
-              errorMessage = "Empty refresh token"
-            } else if (tokenResponse.accessTokenExpirationTime == null) {
-              errorMessage = "Empty expiration time"
-            } else {
-              // Token exchange successful. Store the tokens securely
-              Log.d(TAG, "Token exchange successful. Storing tokens...")
-              saveAccessToken(
-                accessToken = tokenResponse.accessToken!!,
-                refreshToken = tokenResponse.refreshToken!!,
-                expiresAt = tokenResponse.accessTokenExpirationTime!!,
-              )
-              curAccessToken = tokenResponse.accessToken!!
-              Log.d(TAG, "Token successfully saved.")
-            }
-          } else if (tokenEx != null) {
-            errorMessage = "Token exchange failed: ${tokenEx.message}"
-          } else {
-            errorMessage = "Token exchange failed"
-          }
-          if (errorMessage == null) {
-            onTokenRequested(TokenRequestResult(status = TokenRequestResultType.SUCCEEDED))
-          } else {
-            onTokenRequested(
-              TokenRequestResult(
-                status = TokenRequestResultType.FAILED,
-                errorMessage = errorMessage,
-              )
-            )
-          }
-        }
-      }
-
-      exception != null -> {
-        onTokenRequested(
-          TokenRequestResult(
-            status =
-              if (exception.message == "User cancelled flow") TokenRequestResultType.USER_CANCELLED
-              else TokenRequestResultType.FAILED,
-            errorMessage = exception.message,
-          )
-        )
-      }
-
-      else -> {
-        onTokenRequested(TokenRequestResult(status = TokenRequestResultType.USER_CANCELLED))
-      }
-    }
-  }
-
-  fun saveAccessToken(accessToken: String, refreshToken: String, expiresAt: Long) {
-    dataStoreRepository.saveAccessTokenData(
-      accessToken = accessToken,
-      refreshToken = refreshToken,
-      expiresAt = expiresAt,
-    )
-  }
-
-  fun clearAccessToken() {
-    dataStoreRepository.clearAccessTokenData()
-  }
-
-  // TODO: b/494029782 - Both litertlm and aicore download and storage should be unified into a
-  // model repository.
-  private fun checkAICoreModelStatuses() {
-    viewModelScope.launch(Dispatchers.Main) {
-      val aicoreModels =
-        uiState.value.tasks
-          .flatMap { it.models }
-          .filter { it.runtimeType == RuntimeType.AICORE }
-          .distinctBy { it.name }
-
-      // Proactively attempt AICore model download upon app startup.
-      for (model in aicoreModels) {
-        downloadModel(task = null, model = model)
-      }
-    }
-  }
-
-  private fun processPendingDownloads() {
-    // Cancel all pending downloads for the retrieved models.
-    downloadRepository.cancelAll {
-      Log.d(TAG, "All workers are cancelled.")
-
-      viewModelScope.launch(Dispatchers.Main) {
-        val checkedModelNames = mutableSetOf<String>()
-        val tokenStatusAndData = getTokenStatusAndData()
-        for (task in uiState.value.tasks) {
-          for (model in task.models) {
-            if (checkedModelNames.contains(model.name)) {
-              continue
-            }
-
-            // Start download for partially downloaded models.
-            val downloadStatus = uiState.value.modelDownloadStatus[model.name]?.status
-            if (downloadStatus == ModelDownloadStatusType.PARTIALLY_DOWNLOADED) {
-              if (
-                tokenStatusAndData.status == TokenStatus.NOT_EXPIRED &&
-                  tokenStatusAndData.data != null
-              ) {
-                model.accessToken = tokenStatusAndData.data.accessToken
-              }
-              Log.d(TAG, "Sending a new download request for '${model.name}'")
-              downloadRepository.downloadModel(
-                task = task,
-                model = model,
-                onStatusUpdated = this@ModelManagerViewModel::setDownloadStatus,
-              )
-            }
-
-            checkedModelNames.add(model.name)
-          }
-        }
-      }
-    }
-  }
-
-  fun loadModelAllowlist() {
-    _uiState.update { it.copy(loadingModelAllowlist = true, loadingModelAllowlistError = "") }
+  /** Loads only models already stored on this device. No catalog or network lookup is performed. */
+  fun loadLocalModels() {
+    _uiState.update { it.copy(loadingModels = true, loadingModelsError = "") }
 
     viewModelScope.launch(Dispatchers.IO) {
       try {
-        // Clear existing allowlist models.
-        _allowlistModels.clear()
+        val localTasks = getActiveCustomTasks().map { it.task }
 
-        // Load model allowlist json.
-        // Try to read the test allowlist first.
-        Log.d(TAG, "Loading test model allowlist.")
-        var modelAllowlist = readModelAllowlistFromDisk(fileName = MODEL_ALLOWLIST_TEST_FILENAME)
-
-        // Local test only.
-        if (TEST_MODEL_ALLOW_LIST.isNotEmpty()) {
-          Log.d(TAG, "Loading local model allowlist for testing.")
-          val gson = Gson()
-          try {
-            modelAllowlist = gson.fromJson(TEST_MODEL_ALLOW_LIST, ModelAllowlist::class.java)
-          } catch (e: JsonSyntaxException) {
-            Log.e(TAG, "Failed to parse local test json", e)
+        // The upstream task objects are long-lived Hilt singletons. Clear anything originating
+        // from a remote catalog, AICore, or a previous import pass before rebuilding local state.
+        for (task in localTasks) {
+          task.models.removeAll { model ->
+            model.imported || model.url.isNotBlank() || model.runtimeType == RuntimeType.AICORE
           }
         }
 
-        if (modelAllowlist == null) {
-          // Load from github.
-          var version = BuildConfig.VERSION_NAME.replace(".", "_")
-          val url = getAllowlistUrl(version)
-          Log.d(TAG, "Loading model allowlist from internet. Url: $url")
-          val data = getJsonResponse<ModelAllowlist>(url = url)
-          modelAllowlist = data?.jsonObj
-
-          if (modelAllowlist == null) {
-            Log.w(TAG, "Failed to load model allowlist from internet. Trying to load it from disk")
-            modelAllowlist = readModelAllowlistFromDisk()
-          } else {
-            Log.d(TAG, "Done: loading model allowlist from internet")
-            saveModelAllowlistToDisk(modelAllowlistContent = data?.textContent ?: "{}")
-          }
-        }
-
-        if (modelAllowlist == null) {
-          _uiState.update { it.copy(loadingModelAllowlistError = "Failed to load model list") }
-          return@launch
-        }
-
-        Log.d(TAG, "Allowlist: $modelAllowlist")
-
-        val isAICoreAvailable by lazy {
-          // Build a fast-lookup set of all supported device models.
-          // This extracts the models from all allowed groups, flattens them into a single stream,
-          // lowercases them for case-insensitive matching, and stores them in a Set.
-          val allowedDeviceModelsSet =
-            modelAllowlist.aicoreRequirements
-              ?.allowedDeviceGroups
-              ?.asSequence()
-              ?.flatMap { it.deviceModels }
-              ?.map { it.lowercase() }
-              ?.toSet()
-          isAICoreSupported(allowedDeviceModelsSet)
-        }
-
-        // Convert models in the allowlist.
-        val curTasks = getActiveCustomTasks().map { it.task }
-        val nameToModel = mutableMapOf<String, Model>()
-        for (allowedModel in modelAllowlist.models) {
-          if (allowedModel.disabled == true) {
-            continue
-          }
-
-          if (allowedModel.runtimeType == RuntimeType.AICORE && !isAICoreAvailable) {
-            continue
-          }
-
-          // Ignore the allowedModel if its accelerator is only npu and this device's soc is not in
-          // its socToModelFiles.
-          val accelerators = allowedModel.defaultConfig.accelerators ?: ""
-          val acceleratorList = accelerators.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-          if (acceleratorList.size == 1 && acceleratorList[0] == "npu") {
-            val socToModelFiles = allowedModel.socToModelFiles
-            if (socToModelFiles != null && !socToModelFiles.containsKey(SOC)) {
-              Log.d(
-                TAG,
-                "Ignoring model '${allowedModel.name}' because it's NPU-only and not supported on SOC: $SOC",
-              )
-              continue
-            }
-          }
-
-          val model = allowedModel.toModel()
-          _allowlistModels.add(model)
-          nameToModel.put(model.name, model)
-          for (taskType in allowedModel.taskTypes) {
-            val task = curTasks.find { it.id == taskType }
-            task?.models?.add(model)
-
-            if (task?.id == BuiltInTaskId.LLM_TINY_GARDEN) {
-              val newConfigs = model.configs.toMutableList()
-              newConfigs.add(RESET_CONVERSATION_TURN_COUNT_CONFIG)
-              model.configs = newConfigs
-            }
-          }
-        }
-
-        // Find models from allowlist if a task's `modelNames` field is not empty.
-        for (task in curTasks) {
-          if (task.modelNames.isNotEmpty()) {
-            for (modelName in task.modelNames) {
-              val model = nameToModel[modelName]
-              if (model == null) {
-                Log.w(TAG, "Model '$modelName' in task '${task.label}' not found in allowlist.")
-                continue
-              }
-              Log.d(TAG, "Adding model '$modelName' to task '${task.label}' from modelNames.")
-              task.models.add(model)
-            }
-          }
-        }
-
-        // Process all tasks.
         processTasks()
-
-        // Update UI state.
         _uiState.update {
           createUiState()
             .copy(
-              loadingModelAllowlist = false,
-              tasks = curTasks,
+              loadingModels = false,
+              tasks = localTasks,
               tasksByCategory = groupTasksByCategory(),
             )
         }
-
-        // Process pending downloads.
-        processPendingDownloads()
-
-        // Wait for AICore models statuses and update download indicators
-        checkAICoreModelStatuses()
-      } catch (e: Exception) {
-        e.printStackTrace()
+      } catch (exception: Exception) {
+        Log.e(TAG, "Failed to load local models", exception)
+        _uiState.update {
+          it.copy(
+            loadingModels = false,
+            loadingModelsError = exception.message ?: "Failed to load local models",
+          )
+        }
       }
-    }
-  }
-
-  fun clearLoadModelAllowlistError() {
-    val curTasks = getActiveCustomTasks().map { it.task }
-    processTasks()
-    _uiState.update {
-      createUiState()
-        .copy(
-          loadingModelAllowlist = false,
-          tasks = curTasks,
-          loadingModelAllowlistError = "",
-          tasksByCategory = groupTasksByCategory(),
-        )
     }
   }
 
   fun setAppInForeground(foreground: Boolean) {
     lifecycleProvider.isAppInForeground = foreground
-  }
-
-  private fun saveModelAllowlistToDisk(modelAllowlistContent: String) {
-    try {
-      Log.d(TAG, "Saving model allowlist to disk...")
-      val file = File(externalFilesDir, MODEL_ALLOWLIST_FILENAME)
-      file.writeText(modelAllowlistContent)
-      Log.d(TAG, "Done: saving model allowlist to disk.")
-    } catch (e: Exception) {
-      Log.e(TAG, "failed to write model allowlist to disk", e)
-    }
-  }
-
-  private fun readModelAllowlistFromDisk(
-    fileName: String = MODEL_ALLOWLIST_FILENAME
-  ): ModelAllowlist? {
-    try {
-      Log.d(TAG, "Reading model allowlist from disk: $fileName")
-      val baseDir =
-        if (fileName == MODEL_ALLOWLIST_TEST_FILENAME) File("/data/local/tmp") else externalFilesDir
-      val file = File(baseDir, fileName)
-      if (file.exists()) {
-        val content = file.readText()
-        Log.d(TAG, "Model allowlist content from local file: $content")
-
-        val gson = Gson()
-        return gson.fromJson(content, ModelAllowlist::class.java)
-      }
-    } catch (e: Exception) {
-      Log.e(TAG, "failed to read model allowlist from disk", e)
-      return null
-    }
-
-    return null
   }
 
   private fun isModelPartiallyDownloaded(model: Model): Boolean {
@@ -1136,7 +671,7 @@ constructor(
     }
 
     // Load imported models.
-    for (importedModel in dataStoreRepository.readImportedModels()) {
+    for (importedModel in dataStoreRepository.readImportedModels().filter { it.url.isBlank() }) {
       Log.d(TAG, "stored imported model: $importedModel")
 
       // Create model.
@@ -1164,16 +699,14 @@ constructor(
       }
 
       // Update status.
-      if (model.url.isNotEmpty()) {
-        modelDownloadStatus[model.name] = getModelDownloadStatus(model = model)
-      } else {
-        modelDownloadStatus[model.name] =
-          ModelDownloadStatus(
-            status = ModelDownloadStatusType.SUCCEEDED,
-            receivedBytes = importedModel.fileSize,
-            totalBytes = importedModel.fileSize,
-          )
-      }
+      modelDownloadStatus[model.name] =
+        ModelDownloadStatus(
+          status = ModelDownloadStatusType.SUCCEEDED,
+          receivedBytes = importedModel.fileSize,
+          totalBytes = importedModel.fileSize,
+        )
+      modelInstances[model.name] =
+        ModelInitializationStatus(status = ModelInitializationStatusType.NOT_INITIALIZED)
     }
 
     val textInputHistory = dataStoreRepository.readTextInputHistory()
@@ -1493,8 +1026,4 @@ constructor(
 
     return downloadedFileExists || unzippedDirectoryExists
   }
-}
-
-private fun getAllowlistUrl(version: String): String {
-  return "$ALLOWLIST_BASE_URL/${version}.json"
 }

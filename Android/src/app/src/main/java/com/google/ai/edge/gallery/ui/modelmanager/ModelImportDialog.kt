@@ -45,7 +45,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -154,28 +153,8 @@ fun ModelImportDialog(
 ) {
   val context = LocalContext.current
   val info = remember { getFileSizeAndDisplayNameFromUri(context = context, uri = uri) }
-  var fileSize by remember { mutableLongStateOf(info.first) }
+  val fileSize = info.first
   val fileName by remember { mutableStateOf(ensureValidFileName(info.second)) }
-
-  LaunchedEffect(uri) {
-    if (uri.scheme == "http" || uri.scheme == "https") {
-      kotlinx.coroutines.withContext(Dispatchers.IO) {
-        try {
-          // Get the file size from the download url.
-          val downloadUrl = getDownloadUrl(uri)
-          val connection = java.net.URL(downloadUrl).openConnection()
-          connection.connect()
-          val size = connection.contentLengthLong
-          if (size > 0) {
-            fileSize = size
-          }
-          connection.getInputStream().close()
-        } catch (e: Exception) {
-          e.printStackTrace()
-        }
-      }
-    }
-  }
 
   val initialValues: Map<String, Any> = remember {
     mutableMapOf<String, Any>().apply {
@@ -305,12 +284,11 @@ fun ModelImportDialog(
                   valueType = ValueType.BOOLEAN,
                 )
                   as Boolean
-              val downloadUrl = getDownloadUrl(uri)
               val importedModel: ImportedModel =
                 ImportedModel.newBuilder()
                   .setFileName(fileName)
                   .setFileSize(fileSize)
-                  .setUrl(if (uri.scheme == "http" || uri.scheme == "https") downloadUrl else "")
+                  .setUrl("")
                   .setLlmConfig(
                     LlmConfig.newBuilder()
                       .addAllCompatibleAccelerators(supportedAccelerators)
@@ -437,19 +415,6 @@ private fun importModel(
 ) {
   // TODO: handle error.
   coroutineScope.launch(Dispatchers.IO) {
-    // If it's a model from the web, we don't need to copy the file over.
-    if (uri.scheme == "http" || uri.scheme == "https") {
-      Log.d(TAG, "importing web model from $uri. File name: $fileName. File size: $fileSize")
-      // Simulate a quick progress animation to show the user it's being added
-      // for (i in 1..10) {
-      //   kotlinx.coroutines.delay(50)
-      //   onProgress(i.toFloat() / 10f)
-      // }
-      Log.d(TAG, "import done for web model")
-      onDone()
-      return@launch
-    }
-
     // Get the last component of the uri path as the imported file name.
     val decodedUri = URLDecoder.decode(uri.toString(), StandardCharsets.UTF_8.name())
     Log.d(TAG, "importing model from $decodedUri. File name: $fileName. File size: $fileSize")
@@ -500,9 +465,6 @@ private fun importModel(
 }
 
 private fun getFileSizeAndDisplayNameFromUri(context: Context, uri: Uri): Pair<Long, String> {
-  if (uri.scheme == "http" || uri.scheme == "https") {
-    return Pair(0L, uri.lastPathSegment ?: "")
-  }
   val contentResolver = context.contentResolver
   var fileSize = 0L
   var displayName = ""
@@ -525,13 +487,4 @@ private fun getFileSizeAndDisplayNameFromUri(context: Context, uri: Uri): Pair<L
   }
 
   return Pair(fileSize, displayName)
-}
-
-// Get the download url for the model.
-private fun getDownloadUrl(uri: Uri): String {
-  return if (uri.toString().contains("huggingface.co") && uri.toString().contains("/blob/")) {
-    uri.toString().replaceFirst("/blob/", "/resolve/")
-  } else {
-    uri.toString()
-  }
 }

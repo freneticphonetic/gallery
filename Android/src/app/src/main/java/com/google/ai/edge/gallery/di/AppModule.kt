@@ -30,8 +30,6 @@ import com.google.ai.edge.gallery.SkillsSerializer
 import com.google.ai.edge.gallery.UserDataSerializer
 import com.google.ai.edge.gallery.data.DataStoreRepository
 import com.google.ai.edge.gallery.data.DefaultDataStoreRepository
-import com.google.ai.edge.gallery.data.DefaultDownloadRepository
-import com.google.ai.edge.gallery.data.DownloadRepository
 import com.google.ai.edge.gallery.proto.BenchmarkResults
 import com.google.ai.edge.gallery.proto.CutoutCollection
 import com.google.ai.edge.gallery.proto.Settings
@@ -173,16 +171,6 @@ internal object AppModule {
       benchmarkResultsStore,
       skillsDataStore,
     )
-  }
-
-  // Provides DownloadRepository
-  @Provides
-  @Singleton
-  fun provideDownloadRepository(
-    @ApplicationContext context: Context,
-    lifecycleProvider: AppLifecycleProvider,
-  ): DownloadRepository {
-    return DefaultDownloadRepository(context, lifecycleProvider)
   }
 
   @Provides

@@ -24,12 +24,9 @@ import android.os.Bundle
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Lightbulb
-import androidx.compose.material.icons.outlined.LocalLibrary
-import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.QrCode
-import androidx.compose.material.icons.outlined.SentimentVerySatisfied
+import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.Tag
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -61,13 +58,22 @@ private const val TAG = "AGSkillManagerVM"
 
 private const val SKILL_ALLOWLIST_URL = ""
 
+private val OFFLINE_BUILT_IN_SKILLS =
+  setOf(
+    "calculate-hash",
+    "create-calendar-event",
+    "kitchen-adventure",
+    "read-calendar-events",
+    "schedule-notification",
+  )
+
 val TRYOUT_CHIPS: List<SkillTryOutChip> =
   listOf(
     SkillTryOutChip(
-      icon = Icons.Outlined.Map,
-      label = "Interactive Map",
-      prompt = "Show me Googleplex on interactive map.",
-      skillName = "interactive-map",
+      icon = Icons.Outlined.Tag,
+      label = "Calculate hash",
+      prompt = "Calculate the SHA-256 hash of offline-first.",
+      skillName = "calculate-hash",
     ),
     SkillTryOutChip(
       icon = Icons.Outlined.Notifications,
@@ -76,29 +82,10 @@ val TRYOUT_CHIPS: List<SkillTryOutChip> =
       skillName = "schedule-notification",
     ),
     SkillTryOutChip(
-      icon = Icons.Outlined.SentimentVerySatisfied,
-      label = "Track my mood",
-      prompt =
-        "Log yesterday's mood as 2 because it was raining quite heavily, and log today's mood as 9 because I had a great time playing pickleball again. Then show me my mood dashboard.",
-      skillName = "mood-tracker",
-    ),
-    SkillTryOutChip(
-      icon = Icons.Outlined.Lightbulb,
-      label = "Learn something new",
-      prompt = "I want to learn something new!",
-      skillName = "learn-something-new",
-    ),
-    SkillTryOutChip(
-      icon = Icons.Outlined.LocalLibrary,
-      label = "Query Wikipedia",
-      prompt = "Check Wikipedia about Oscars 2026. Tell me who won the best picture.",
-      skillName = "query-wikipedia",
-    ),
-    SkillTryOutChip(
-      icon = Icons.Outlined.QrCode,
-      label = "Generate QR code",
-      prompt = "Generate QR code for https://deepmind.google/models/gemma/",
-      skillName = "qr-code",
+      icon = Icons.Outlined.Restaurant,
+      label = "Kitchen adventure",
+      prompt = "Start kitchen adventure.",
+      skillName = "kitchen-adventure",
     ),
   )
 
@@ -158,7 +145,7 @@ constructor(
         // 1. Load all skills from DataStore.
         val allDataStoreSkills = dataStoreRepository.getAllSkills()
         val dataStoreBuiltInSkills = allDataStoreSkills.filter { it.builtIn }
-        val dataStoreCustomSkills = allDataStoreSkills.filter { !it.builtIn }
+        val dataStoreCustomSkills = allDataStoreSkills.filter { !it.builtIn && it.skillUrl.isBlank() }
         Log.d(
           TAG,
           "data store built-in skills:\n${dataStoreBuiltInSkills.joinToString(separator = "\n") { it.name }}",
@@ -175,7 +162,10 @@ constructor(
         Log.d(TAG, "data store built-in skills selection map: $builtInSelectionMap")
 
         // 3. Read and parse SKILL.md files from assets/skills directories.
-        val builtInSkills = loadBuiltInSkills(context, builtInSelectionMap, DEFAULT_DISABLED_SKILLS)
+        val builtInSkills =
+          loadBuiltInSkills(context, builtInSelectionMap, DEFAULT_DISABLED_SKILLS).filter {
+            it.name in OFFLINE_BUILT_IN_SKILLS
+          }
         Log.d(
           TAG,
           "Final built-in skills:\n${builtInSkills.joinToString(separator = "\n") { "${it.name}(${it.selected})" }}",

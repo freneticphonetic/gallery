@@ -57,7 +57,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -137,22 +136,10 @@ private data class AddSkillOption(
 private val ADD_SKILL_OPTIONS =
   listOf(
     AddSkillOption(
-      type = AddSkillOptionType.RemoteUrl,
-      titleResId = R.string.add_skill_option_url_title,
-      descriptionResId = R.string.add_skill_option_url_description,
-      icon = Icons.Rounded.Link,
-    ),
-    AddSkillOption(
       type = AddSkillOptionType.LocalImport,
       titleResId = R.string.add_skill_option_local_title,
       descriptionResId = R.string.add_skill_option_local_description,
       icon = Icons.Outlined.DriveFolderUpload,
-    ),
-    AddSkillOption(
-      type = AddSkillOptionType.ViewCommunitySkills,
-      titleResId = R.string.add_skill_option_view_community_skills_title,
-      descriptionResId = R.string.add_skill_option_view_community_skills_description,
-      icon = Icons.AutoMirrored.Outlined.OpenInNew,
     ),
   )
 
