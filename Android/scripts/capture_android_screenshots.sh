@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Installs the debug APK on the CI emulator and captures the requested app screens.
 set -euo pipefail
 
 repository_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
