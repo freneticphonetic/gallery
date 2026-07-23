@@ -47,6 +47,15 @@ Android build instructions are in [DEVELOPMENT.md](DEVELOPMENT.md). The applicat
 `com.freneticphonetic.offlinegallery`; the internal Kotlin namespace is intentionally unchanged in
 this first pass to keep the functional diff reviewable.
 
+### GitHub Actions artifacts
+
+- **Build Android APK** produces an installable `Offline-AI-Gallery.apk` plus its SHA-256 checksum.
+- **Capture Android Screenshots** boots an AOSP emulator, installs the debug APK, and captures the
+  home and local-model screens as full-resolution PNG files.
+
+Open a completed workflow run and download the corresponding artifact from its **Artifacts**
+section. Artifacts are retained for 30 days.
+
 Near-term cleanup work includes removing the now-dormant MCP/Ktor implementation, renaming the
 internal namespace, documenting compatible model formats in more detail, and adding a complete
 in-app third-party license viewer.

@@ -1,0 +1,72 @@
+name: Capture Android Screenshots
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "Android/**"
+      - ".github/workflows/android_screenshots.yaml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "Android/**"
+      - ".github/workflows/android_screenshots.yaml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-screenshots-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture_screenshots:
+    name: Capture screenshots on AOSP emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Install Android SDK Platform 37
+        working-directory: ./Android/src
+        run: sdkmanager --install "platforms;android-37.0"
+
+      - name: Build screenshot APK
+        working-directory: ./Android/src
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:assembleDebug
+
+      - name: Boot emulator and capture screenshots
+        uses: ReactiveCircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 35
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: >-
+            -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+            -camera-back none -camera-front none
+          script: bash Android/scripts/capture_android_screenshots.sh
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: offline-ai-gallery-screenshots-${{ github.run_number }}
+          path: artifacts/screenshots/*.png
+          if-no-files-found: error
+          retention-days: 30
