@@ -16,24 +16,21 @@
 
 package com.google.ai.edge.gallery
 
-import android.util.Log
-import com.google.firebase.Firebase
-import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.analytics.analytics
+import android.os.Bundle
 
-private var hasLoggedAnalyticsWarning = false
+/**
+ * Compatibility surface for upstream instrumentation call sites.
+ *
+ * Offline Gallery does not collect, persist, or transmit analytics. Keeping a typed no-op here
+ * lets the service dependency disappear without mixing a broad telemetry refactor into the first
+ * offline foundation change.
+ */
+class OfflineAnalytics private constructor() {
+  fun logEvent(@Suppress("UNUSED_PARAMETER") name: String, @Suppress("UNUSED_PARAMETER") data: Bundle?) =
+    Unit
+}
 
-val firebaseAnalytics: FirebaseAnalytics?
-  get() =
-    runCatching { Firebase.analytics }
-      .onFailure { exception ->
-        // Firebase.analytics can throw an exception if goolgle-services is not set up, e.g.,
-        // missing google-services.json.
-        if (!hasLoggedAnalyticsWarning) {
-          Log.w("AGAnalyticsFirebase", "Firebase Analytics is not available", exception)
-        }
-      }
-      .getOrNull()
+val firebaseAnalytics: OfflineAnalytics? = null
 
 enum class GalleryEvent(val id: String) {
   CAPABILITY_SELECT(id = "capability_select"),

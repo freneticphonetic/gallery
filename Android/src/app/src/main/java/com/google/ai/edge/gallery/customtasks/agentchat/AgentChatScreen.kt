@@ -68,7 +68,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -83,14 +82,12 @@ import com.google.ai.edge.gallery.common.LOCAL_URL_BASE
 import com.google.ai.edge.gallery.common.PermissionResult
 import com.google.ai.edge.gallery.common.RequestPermissionAgentAction
 import com.google.ai.edge.gallery.common.SkillProgressAgentAction
-import com.google.ai.edge.gallery.data.AgentSkillsURLs
 import com.google.ai.edge.gallery.data.BuiltInTaskId
 import com.google.ai.edge.gallery.data.Model
 import com.google.ai.edge.gallery.data.Task
 import com.google.ai.edge.gallery.firebaseAnalytics
 import com.google.ai.edge.gallery.ui.common.BaseGalleryWebViewClient
 import com.google.ai.edge.gallery.ui.common.GalleryWebView
-import com.google.ai.edge.gallery.ui.common.buildTrackableUrlAnnotatedString
 import com.google.ai.edge.gallery.ui.common.chat.ChatMessage
 import com.google.ai.edge.gallery.ui.common.chat.ChatMessageCollapsableProgressPanel
 import com.google.ai.edge.gallery.ui.common.chat.ChatMessageImage
@@ -519,23 +516,8 @@ fun AgentChatScreen(
                 modifier = Modifier.padding(top = 12.dp, bottom = 16.dp),
               )
               Text(
-                buildAnnotatedString {
-                  append("Use specialized, high-order reasoning by loading different skills or ")
-                  append(
-                    buildTrackableUrlAnnotatedString(
-                      url = AgentSkillsURLs.REPOSITORY,
-                      linkText = "creating\u00A0your\u00A0own",
-                    )
-                  )
-                  append(". Explore community contributed skills on ")
-                  append(
-                    buildTrackableUrlAnnotatedString(
-                      url = AgentSkillsURLs.DISCUSSIONS,
-                      linkText = "GitHub\u00A0discussions",
-                    )
-                  )
-                  append(".\n\nTry tapping a sample prompt below to see Agent Skills in action!")
-                },
+                "Use a small set of built-in offline skills or import a skill from local " +
+                  "storage. Try a sample prompt below to get started.",
                 style =
                   MaterialTheme.typography.headlineSmall.copy(fontSize = 16.sp, lineHeight = 22.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -764,8 +746,8 @@ private fun resetSessionWithCurrentSkillsAndMcps(
       }
     } else null
   }
-  val toolsPrompt = agentTools.mcpManagerViewModel.getToolsPrompt()
-  val actualSystemPrompt = getEffectiveBaseSystemPrompt(curSystemPrompt, toolsPrompt.isNotEmpty())
+  val toolsPrompt = ""
+  val actualSystemPrompt = getEffectiveBaseSystemPrompt(curSystemPrompt, false)
   viewModel.resetSession(
     task = task,
     model = model,

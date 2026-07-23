@@ -86,7 +86,7 @@ class TinyGardenTask @Inject constructor() : CustomTask {
       id = BuiltInTaskId.LLM_TINY_GARDEN,
       label = "Tiny Garden",
       description =
-        "Use natural language to plant, water, and harvest in this fully offline mini-game.\n\nNote: This is powered by the experimental FunctionGemma model optimized for latency. Due to its compact size (270M), it works well on simple instructions but responses may vary to more complex interactions.",
+        "Use natural language to plant, water, and harvest in this fully offline mini-game. A compatible local function-calling model is required.",
       shortDescription = "Use natural language to plant",
       docUrl = "https://github.com/google-ai-edge/LiteRT-LM/blob/main/kotlin/README.md",
       sourceCodeUrl =
