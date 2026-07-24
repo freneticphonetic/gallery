@@ -51,7 +51,34 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build release APK
-        run: ./gradlew --no-daemon :app:assembleRelease
+        shell: bash
+        run: |
+          set -o pipefail
+          log_dir="$GITHUB_WORKSPACE/artifacts/logs"
+          log_file="$log_dir/gradle-build.log"
+          mkdir -p "$log_dir"
+
+          set +e
+          ./gradlew --no-daemon --console=plain :app:assembleRelease 2>&1 | tee "$log_file"
+          gradle_status=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$gradle_status" -ne 0 ]; then
+            echo "::group::Gradle failure tail"
+            tail -n 200 "$log_file"
+            echo "::endgroup::"
+          fi
+
+          exit "$gradle_status"
+
+      - name: Upload Gradle build log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: offline-ai-gallery-gradle-log-${{ github.run_number }}
+          path: artifacts/logs/gradle-build.log
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Package APK and checksum
         run: |
