@@ -1,0 +1,14 @@
+# Project governance
+/AGENTS.md @freneticphonetic
+/docs/PROJECT_CHARTER.md @freneticphonetic
+/docs/adr/ @freneticphonetic
+
+# Security and application boundaries
+/Android/src/app/src/main/AndroidManifest.xml @freneticphonetic
+/Android/src/app/build.gradle.kts @freneticphonetic
+/Android/src/gradle/libs.versions.toml @freneticphonetic
+
+# Build and release behavior
+/.github/workflows/ @freneticphonetic
+/Android/src/gradle.properties @freneticphonetic
+/Android/src/settings.gradle.kts @freneticphonetic
