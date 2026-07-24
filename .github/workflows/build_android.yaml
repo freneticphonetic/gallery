@@ -50,6 +50,13 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
+      - name: Remove obsolete Compose weight imports
+        run: |
+          sed -i '/import androidx\.compose\.foundation\.layout\.weight/d' \
+            app/src/main/java/com/google/ai/edge/gallery/ui/home/HomeScreen.kt \
+            app/src/main/java/com/google/ai/edge/gallery/ui/home/SettingsDialog.kt \
+            app/src/main/java/com/google/ai/edge/gallery/ui/modelmanager/GlobalModelManager.kt
+
       - name: Build release APK
         shell: bash
         run: |
