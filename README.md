@@ -148,58 +148,6 @@ Back up important local data before replacing or uninstalling a pre-release buil
 
 Android build instructions are available in [DEVELOPMENT.md](DEVELOPMENT.md).
 
-The application ID is:
-
-```text
-com.freneticphonetic.offlinegallery
-- The app does not request `INTERNET` or `ACCESS_NETWORK_STATE`.
-- Manifest removal rules prevent transitive dependencies from adding those permissions back.
-- Firebase Analytics, Firebase Cloud Messaging, OAuth, remote model catalogs, and in-app model
-  downloads are removed.
-- Android cloud backup is disabled.
-- Models are imported only through Android's local document picker.
-- Prompts, media, conversations, skill data, and model files remain on the device.
-- Inference runs locally through the
-  [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) runtime.
-- No Google account, Play Services connection, or Google terms acceptance is required.
-
-Camera, microphone, calendar, and notification permissions remain optional because individual
-on-device tools may use those Android features. They are requested only when the relevant feature
-needs them.
-
-## First offline preview
-
-Release [`v1.0.16-offline.1`](https://github.com/freneticphonetic/gallery/releases/tag/v1.0.16-offline.1)
-is the first installable preview of the offline fork.
-
-The core application now:
-
-- Builds as an installable Android APK.
-- Launches without network permission.
-- Imports compatible `.litertlm` and `.task` model files from local storage.
-- Stores and manages imported models on the device.
-- Routes models to tools based on their declared capabilities.
-- Loads a local language model and performs successful on-device inference.
-- Supports local model deletion and benchmarking.
-- Provides light, dark, and system theme options.
-
-The release was tested on a physical Android device with
-`gemma3-270m-it-q8.litertlm`. The model imported successfully, loaded on the CPU, and produced an
-AI Chat response entirely on-device.
-
-Performance and compatibility vary by model, Android device, and selected accelerator.
-
-## Included tools
-
-The interface currently exposes these on-device tools:
-
-- **AI Chat** — Chat with a compatible local language model.
-- **Prompt Lab** — Run single-turn prompts and experiments.
-- **Ask Image** — Ask questions about images using a compatible multimodal model.
-- **Audio Scribe** — Transcribe or translate audio with a compatible model.
-- **Agent Skills** — Use supported local skills in chat.
-- **Mobile Actions** — Control supported device actions.
-- **Tiny Garden** — Use natural language to manage the included garden experience.
 
 A tool remains unavailable until a model declaring compatible capabilities has been imported.
 
@@ -266,8 +214,3 @@ Back up important local data before replacing or uninstalling a pre-release buil
 ## Development
 
 Android build instructions are available in [DEVELOPMENT.md](DEVELOPMENT.md).
-
-The application ID is:
-
-```text
-com.freneticphonetic.offlinegallery
