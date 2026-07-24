@@ -6,9 +6,9 @@
 # Security and application boundaries
 /Android/src/app/src/main/AndroidManifest.xml @freneticphonetic
 /Android/src/app/build.gradle.kts @freneticphonetic
-/Android/gradle/libs.versions.toml @freneticphonetic
+/Android/src/gradle/libs.versions.toml @freneticphonetic
 
 # Build and release behavior
 /.github/workflows/ @freneticphonetic
-/Android/gradle.properties @freneticphonetic
-/Android/settings.gradle.kts @freneticphonetic
+/Android/src/gradle.properties @freneticphonetic
+/Android/src/settings.gradle.kts @freneticphonetic
