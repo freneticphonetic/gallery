@@ -17,7 +17,41 @@ adb shell input keyevent 82 || true
 adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
-adb install -r "$apk_path"
+
+wait_for_package_manager() {
+  local attempt
+  for ((attempt = 1; attempt <= 30; attempt++)); do
+    if adb shell cmd package path android >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+
+  adb shell service list | grep package || true
+  return 1
+}
+
+install_apk() {
+  local attempt
+  for ((attempt = 1; attempt <= 3; attempt++)); do
+    if adb install --no-streaming -r "$apk_path"; then
+      return 0
+    fi
+
+    if ((attempt < 3)); then
+      echo "APK install attempt $attempt failed; reconnecting to the emulator."
+      adb reconnect || true
+      adb wait-for-device
+      sleep 5
+      wait_for_package_manager
+    fi
+  done
+
+  return 1
+}
+
+wait_for_package_manager
+install_apk
 
 wait_for_app() {
   local attempt
