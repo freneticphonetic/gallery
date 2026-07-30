@@ -29,6 +29,7 @@ class HomeScreenTest {
         BuiltInTaskId.LLM_ASK_AUDIO,
         BuiltInTaskId.LLM_AGENT_CHAT,
         BuiltInTaskId.LLM_PROMPT_LAB,
+        BuiltInTaskId.LOCAL_IMAGE_GENERATOR,
       )
 
     taskIds.forEach { taskId ->

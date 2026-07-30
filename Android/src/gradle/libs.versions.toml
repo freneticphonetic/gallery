@@ -32,6 +32,7 @@ moshi = "1.15.2"
 ksp = "2.3.6"
 mcp = "0.8.0"
 ktor = "3.4.3"
+llamatik = "1.7.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -75,6 +76,7 @@ moshi-kotlin-codegen = { group = "com.squareup.moshi", name = "moshi-kotlin-code
 mcp-kotlin-sdk = { group = "io.modelcontextprotocol", name = "kotlin-sdk", version.ref = "mcp" }
 ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
+llamatik = { group = "com.llamatik", name = "library-android", version.ref = "llamatik" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

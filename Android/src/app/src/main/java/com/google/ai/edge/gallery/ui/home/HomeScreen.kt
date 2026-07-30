@@ -112,7 +112,8 @@ internal fun homePromptDelivery(taskId: String): HomePromptDelivery =
     BuiltInTaskId.LLM_ASK_IMAGE,
     BuiltInTaskId.LLM_ASK_AUDIO,
     BuiltInTaskId.LLM_AGENT_CHAT,
-    BuiltInTaskId.LLM_PROMPT_LAB -> HomePromptDelivery.PREFILL
+    BuiltInTaskId.LLM_PROMPT_LAB,
+    BuiltInTaskId.LOCAL_IMAGE_GENERATOR -> HomePromptDelivery.PREFILL
     else -> HomePromptDelivery.SUBMIT
   }
 
@@ -592,6 +593,7 @@ private fun ChatInputPicker(
   val audioTask = tasks.find { it.id == BuiltInTaskId.LLM_ASK_AUDIO }
   val skillsTask = tasks.find { it.id == BuiltInTaskId.LLM_AGENT_CHAT }
   val promptLabTask = tasks.find { it.id == BuiltInTaskId.LLM_PROMPT_LAB }
+  val imageGeneratorTask = tasks.find { it.id == BuiltInTaskId.LOCAL_IMAGE_GENERATOR }
   val mobileActionsTask = tasks.find { it.id == BuiltInTaskId.LLM_MOBILE_ACTIONS }
   val tinyGardenTask = tasks.find { it.id == BuiltInTaskId.LLM_TINY_GARDEN }
 
@@ -652,6 +654,15 @@ private fun ChatInputPicker(
         modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
       )
 
+      imageGeneratorTask?.let {
+        ChatInputPickerItem(
+          task = it,
+          label = it.label,
+          description = it.shortDescription.ifBlank { it.description },
+          ready = readyModels(it).isNotEmpty(),
+          onClick = { onTaskSelected(it, homePromptDelivery(it.id)) },
+        )
+      }
       promptLabTask?.let {
         ChatInputPickerItem(
           task = it,
