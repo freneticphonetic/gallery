@@ -59,6 +59,9 @@ install_apk() {
 wait_for_package_manager
 install_apk
 
+window_hierarchy="$(mktemp)"
+trap 'rm -f "$window_hierarchy"' EXIT
+
 wait_for_app() {
   local attempt
   for ((attempt = 1; attempt <= 45; attempt++)); do
@@ -77,10 +80,61 @@ wait_for_app() {
   return 1
 }
 
+dismiss_system_ui_anr() {
+  local attempt
+  local bounds
+  local node
+  local x1
+  local y1
+  local x2
+  local y2
+
+  for ((attempt = 1; attempt <= 2; attempt++)); do
+    if ! adb shell uiautomator dump /sdcard/window-hierarchy.xml >/dev/null 2>&1 ||
+      ! adb exec-out cat /sdcard/window-hierarchy.xml >"$window_hierarchy"; then
+      echo "Unable to inspect the emulator window hierarchy."
+      return 1
+    fi
+
+    if ! grep -q 'resource-id="android:id/aerr_wait"' "$window_hierarchy"; then
+      return 0
+    fi
+
+    if ! grep -Eqi 'System UI[^"]*(isn.t|not) responding' "$window_hierarchy"; then
+      echo "An unexpected application-not-responding dialog is covering the app."
+      return 1
+    fi
+
+    node="$(
+      grep -o '<node[^>]*resource-id="android:id/aerr_wait"[^>]*/>' \
+        "$window_hierarchy" |
+        head -n 1
+    )"
+    bounds="$(
+      printf '%s\n' "$node" |
+        sed -n \
+          's/.*bounds="\[\([0-9][0-9]*\),\([0-9][0-9]*\)\]\[\([0-9][0-9]*\),\([0-9][0-9]*\)\]".*/\1 \2 \3 \4/p'
+    )"
+    if ! read -r x1 y1 x2 y2 <<<"$bounds" ||
+      [[ -z "${x1:-}" || -z "${y1:-}" || -z "${x2:-}" || -z "${y2:-}" ]]; then
+      echo "Unable to locate the System UI dialog's Wait button."
+      return 1
+    fi
+
+    echo "Dismissing hosted-emulator System UI ANR dialog."
+    adb shell input tap "$(((x1 + x2) / 2))" "$(((y1 + y2) / 2))"
+    sleep 5
+  done
+
+  echo "System UI ANR dialog is still covering the app."
+  return 1
+}
+
 capture_screen() {
   local file_name="$1"
   local file_size
   stay_awake
+  dismiss_system_ui_anr
   sleep 2
   adb exec-out screencap -p > "$output_dir/$file_name"
   test -s "$output_dir/$file_name"
