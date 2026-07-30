@@ -11,11 +11,15 @@ activity="com.google.ai.edge.gallery.MainActivity"
 test -f "$apk_path"
 mkdir -p "$output_dir"
 
+stay_awake() {
+  adb shell input keyevent KEYCODE_WAKEUP || true
+  adb shell svc power stayon true || true
+  adb shell wm dismiss-keyguard || true
+  adb shell input keyevent 82 || true
+}
+
 adb wait-for-device
-adb shell input keyevent KEYCODE_WAKEUP || true
-adb shell svc power stayon true || true
-adb shell wm dismiss-keyguard || true
-adb shell input keyevent 82 || true
+stay_awake
 adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
@@ -75,16 +79,27 @@ wait_for_app() {
 
 capture_screen() {
   local file_name="$1"
+  local file_size
+  stay_awake
+  sleep 2
   adb exec-out screencap -p > "$output_dir/$file_name"
   test -s "$output_dir/$file_name"
+  file_size="$(wc -c < "$output_dir/$file_name")"
+  if ((file_size < 20000)); then
+    echo "Captured frame is unexpectedly small ($file_size bytes)."
+    adb shell dumpsys power | grep -E "mWakefulness|Display Power" || true
+    return 1
+  fi
 }
 
 adb shell am force-stop "$application_id"
+stay_awake
 adb shell am start -W -n "$application_id/$activity"
 wait_for_app
 capture_screen "01-home.png"
 
 adb shell am force-stop "$application_id"
+stay_awake
 adb shell am start -W \
   -n "$application_id/$activity" \
   -a android.intent.action.VIEW \
