@@ -55,15 +55,20 @@ install_apk
 
 wait_for_app() {
   local attempt
-  for ((attempt = 1; attempt <= 30; attempt++)); do
-    if adb shell dumpsys window windows | grep -q "mCurrentFocus.*$application_id"; then
-      sleep 4
-      return 0
+  for ((attempt = 1; attempt <= 45; attempt++)); do
+    if adb shell pidof "$application_id" >/dev/null 2>&1; then
+      sleep 8
+      if adb shell pidof "$application_id" >/dev/null 2>&1; then
+        return 0
+      fi
     fi
-    sleep 1
+    sleep 2
   done
 
-  adb shell dumpsys window windows | grep -E "mCurrentFocus|mFocusedApp" || true
+  adb shell dumpsys activity activities |
+    grep -E "mResumedActivity|topResumedActivity|mFocusedApp" || true
+  adb logcat -d -t 300 |
+    grep -E "AndroidRuntime|FATAL EXCEPTION|Process: $application_id" || true
   return 1
 }
 
