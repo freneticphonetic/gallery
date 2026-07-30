@@ -229,6 +229,7 @@ fun MobileActionsScreen(
   curActions: SnapshotStateList<Action>,
   tools: List<ToolProvider>,
   onProcessingStarted: () -> Unit,
+  initialQuery: String? = null,
 ) {
   var recordAudioPermissionGranted by remember { mutableStateOf(false) }
   val context = LocalContext.current
@@ -271,6 +272,7 @@ fun MobileActionsScreen(
         curActions = curActions,
         setAppBarControlsDisabled = setAppBarControlsDisabled,
         onProcessingStarted = onProcessingStarted,
+        initialQuery = initialQuery,
       )
     }
   }
@@ -288,6 +290,7 @@ fun MainUi(
   curActions: SnapshotStateList<Action>,
   holdToDictateViewModel: HoldToDictateViewModel = hiltViewModel(),
   onProcessingStarted: () -> Unit,
+  initialQuery: String? = null,
 ) {
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
   val model = modelManagerUiState.selectedModel
@@ -306,6 +309,7 @@ fun MainUi(
   val focusManager = LocalFocusManager.current
   val resources = LocalResources.current
   val taskColor = getTaskBgGradientColors(task = task)[1]
+  var initialQueryConsumed by remember(initialQuery, model.name) { mutableStateOf(false) }
 
   val curDownloadStatus = modelManagerUiState.modelDownloadStatus[model.name]?.status
   setAppBarControlsDisabled(
@@ -417,6 +421,13 @@ fun MainUi(
           putString("model_id", model.name)
         },
       )
+    }
+
+    LaunchedEffect(initialQuery, model.name) {
+      if (!initialQuery.isNullOrBlank() && !initialQueryConsumed) {
+        initialQueryConsumed = true
+        send(initialQuery)
+      }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {

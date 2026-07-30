@@ -179,6 +179,7 @@ fun MessageInputText(
   showMcpPicker: Boolean = false,
   showImagePicker: Boolean = false,
   showAudioPicker: Boolean = false,
+  startAudioRecording: Boolean = false,
   showStopButtonWhenInProgress: Boolean = false,
   onImageLimitExceeded: () -> Unit = {},
   onModelNotSupportImage: () -> Unit = {},
@@ -193,6 +194,7 @@ fun MessageInputText(
   var showCameraCaptureBottomSheet by remember { mutableStateOf(false) }
   val cameraCaptureSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
   var showAudioRecorder by remember { mutableStateOf(false) }
+  var startAudioRecordingConsumed by remember(startAudioRecording) { mutableStateOf(false) }
   val audioRecorderSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
   var pickedImages by remember { mutableStateOf<List<Bitmap>>(listOf()) }
   var pickedAudioClips by remember { mutableStateOf<List<AudioClip>>(listOf()) }
@@ -265,6 +267,20 @@ fun MessageInputText(
         handleClickRecordAudioClip()
       }
     }
+
+  LaunchedEffect(startAudioRecording, showAudioPicker) {
+    if (startAudioRecording && showAudioPicker && !startAudioRecordingConsumed) {
+      startAudioRecordingConsumed = true
+      when (PackageManager.PERMISSION_GRANTED) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) -> {
+          handleClickRecordAudioClip()
+        }
+        else -> {
+          recordAudioClipsPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+      }
+    }
+  }
 
   // Registers a photo picker activity launcher in single-select mode.
   val pickMedia =

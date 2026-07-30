@@ -39,6 +39,9 @@ data class CustomTaskData(
   val setAppBarControlsDisabled: (Boolean) -> Unit = {},
   val setTopBarVisible: (Boolean) -> Unit = {},
   val setCustomNavigateUpCallback: ((() -> Unit)?) -> Unit = {},
+  val initialQuery: String? = null,
+  val initialDraft: String? = null,
+  val startAudioRecording: Boolean = false,
 )
 
 data class CustomTaskDataForBuiltinTask(
@@ -46,4 +49,8 @@ data class CustomTaskDataForBuiltinTask(
   val onNavUp: () -> Unit,
   // The initial query to be sent to the model when the screen is first loaded.
   val initialQuery: String? = null,
+  // Initial text to place in the composer without sending it.
+  val initialDraft: String? = null,
+  // Whether an audio-capable composer should open its recorder on first launch.
+  val startAudioRecording: Boolean = false,
 )

@@ -76,6 +76,8 @@ import com.google.ai.edge.gallery.ui.benchmark.BenchmarkScreen
 import com.google.ai.edge.gallery.ui.common.ErrorDialog
 import com.google.ai.edge.gallery.ui.common.ModelPageAppBar
 import com.google.ai.edge.gallery.ui.common.chat.ModelDownloadStatusInfoPanel
+import com.google.ai.edge.gallery.ui.home.HomeLaunchRequest
+import com.google.ai.edge.gallery.ui.home.HomePromptDelivery
 import com.google.ai.edge.gallery.ui.home.HomeScreen
 import com.google.ai.edge.gallery.ui.modelmanager.GlobalModelManager
 import com.google.ai.edge.gallery.ui.modelmanager.ModelInitializationStatusType
@@ -98,6 +100,24 @@ private const val ENTER_ANIMATION_DELAY_MS = 100
 
 private const val EXIT_ANIMATION_DURATION_MS = 500
 private val EXIT_ANIMATION_EASING = EaseOutExpo
+
+private fun modelRoute(request: HomeLaunchRequest): String {
+  val route =
+    "$ROUTE_MODEL/${Uri.encode(request.task.id)}/${Uri.encode(request.model.name)}"
+  val parameters = mutableListOf<String>()
+  request.text?.takeIf { it.isNotBlank() }?.let { text ->
+    val parameterName =
+      when (request.delivery) {
+        HomePromptDelivery.SUBMIT -> "query"
+        HomePromptDelivery.PREFILL -> "draft"
+      }
+    parameters += "$parameterName=${Uri.encode(text)}"
+  }
+  if (request.startAudioRecording) {
+    parameters += "record=true"
+  }
+  return if (parameters.isEmpty()) route else "$route?${parameters.joinToString("&")}"
+}
 
 private fun enterTween(): FiniteAnimationSpec<IntOffset> {
   return tween(
@@ -186,13 +206,11 @@ fun GalleryNavHost(
     composable(route = ROUTE_HOMESCREEN) {
       HomeScreen(
         modelManagerViewModel = modelManagerViewModel,
-        navigateToTaskScreen = { task ->
-          pickedTask = task
-          enableModelListAnimation = true
-          navController.navigate(ROUTE_MODEL_LIST)
+        onLaunch = { request ->
+          navController.navigate(modelRoute(request))
           firebaseAnalytics?.logEvent(
             GalleryEvent.CAPABILITY_SELECT.id,
-            Bundle().apply { putString("capability_name", task.id) },
+            Bundle().apply { putString("capability_name", request.task.id) },
           )
         },
         onModelsClicked = { navController.navigate(ROUTE_MODEL_MANAGER) },
@@ -242,7 +260,8 @@ fun GalleryNavHost(
 
     // Model page.
     composable(
-      route = "$ROUTE_MODEL/{taskId}/{modelName}?query={query}",
+      route =
+        "$ROUTE_MODEL/{taskId}/{modelName}?query={query}&draft={draft}&record={record}",
       arguments =
         listOf(
           navArgument("taskId") { type = NavType.StringType },
@@ -252,6 +271,15 @@ fun GalleryNavHost(
             nullable = true
             defaultValue = null
           },
+          navArgument("draft") {
+            type = NavType.StringType
+            nullable = true
+            defaultValue = null
+          },
+          navArgument("record") {
+            type = NavType.BoolType
+            defaultValue = false
+          },
         ),
       enterTransition = { slideEnter() },
       exitTransition = { slideExit() },
@@ -259,6 +287,8 @@ fun GalleryNavHost(
       val modelName = backStackEntry.arguments?.getString("modelName") ?: ""
       val taskId = backStackEntry.arguments?.getString("taskId") ?: ""
       val queryParam = backStackEntry.arguments?.getString("query")
+      val draftParam = backStackEntry.arguments?.getString("draft")
+      val startAudioRecording = backStackEntry.arguments?.getBoolean("record") ?: false
       val scope = rememberCoroutineScope()
       val context = LocalContext.current
 
@@ -281,6 +311,8 @@ fun GalleryNavHost(
                     navController.navigateUp()
                   },
                   initialQuery = queryParam,
+                  initialDraft = draftParam,
+                  startAudioRecording = startAudioRecording,
                 )
             )
           } else {
@@ -324,6 +356,9 @@ fun GalleryNavHost(
                     setAppBarControlsDisabled = { disableAppBarControls = it },
                     setTopBarVisible = { hideTopBar = !it },
                     setCustomNavigateUpCallback = { customNavigateUpCallback = it },
+                    initialQuery = queryParam,
+                    initialDraft = draftParam,
+                    startAudioRecording = startAudioRecording,
                   )
               )
             }
@@ -448,13 +483,16 @@ fun GalleryNavHost(
             } ?: task.models.firstOrNull()
 
           if (defaultModel != null) {
-            val route =
-              if (!queryStr.isNullOrEmpty()) {
-                "$ROUTE_MODEL/${task.id}/${defaultModel.name}?query=${Uri.encode(queryStr)}"
-              } else {
-                "$ROUTE_MODEL/${task.id}/${defaultModel.name}"
-              }
-            navController.navigate(route)
+            navController.navigate(
+              modelRoute(
+                HomeLaunchRequest(
+                  task = task,
+                  model = defaultModel,
+                  text = queryStr,
+                  delivery = HomePromptDelivery.SUBMIT,
+                )
+              )
+            )
           } else {
             Log.e(TAG, "No available model found for task: $host")
           }

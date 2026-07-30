@@ -129,6 +129,7 @@ fun TinyGardenScreen(
   setTopBarVisible: (Boolean) -> Unit,
   commandFlow: Flow<TinyGardenCommand>,
   viewModel: TinyGardenViewModel = hiltViewModel(),
+  initialQuery: String? = null,
 ) {
   val uiState by viewModel.uiState.collectAsState()
   var recordAudioPermissionGranted by remember { mutableStateOf(false) }
@@ -172,6 +173,7 @@ fun TinyGardenScreen(
           viewModel = viewModel,
           setAppBarControlsDisabled = setAppBarControlsDisabled,
           setTopBarVisible = setTopBarVisible,
+          initialQuery = initialQuery,
         )
 
         // Resetting engine spinner.
@@ -226,6 +228,7 @@ fun MainUi(
   setTopBarVisible: (Boolean) -> Unit,
   commandFlow: Flow<TinyGardenCommand>,
   holdToDictateViewModel: HoldToDictateViewModel = hiltViewModel(),
+  initialQuery: String? = null,
 ) {
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
   val model = modelManagerUiState.selectedModel
@@ -245,6 +248,7 @@ fun MainUi(
   var prevAction by remember { mutableStateOf("") }
   val resources = LocalResources.current
   val context = LocalContext.current
+  var initialQueryConsumed by remember(initialQuery, model.name) { mutableStateOf(false) }
 
   val taskColor = getTaskBgGradientColors(task = task)[1]
   val curDownloadStatus = modelManagerUiState.modelDownloadStatus[model.name]?.status
@@ -405,6 +409,17 @@ fun MainUi(
           putString("model_id", model.name)
         },
       )
+    }
+  }
+
+  LaunchedEffect(initialQuery, modelManagerUiState.isModelInitialized(model), model.name) {
+    if (
+      !initialQuery.isNullOrBlank() &&
+        !initialQueryConsumed &&
+        modelManagerUiState.isModelInitialized(model)
+    ) {
+      initialQueryConsumed = true
+      processInstructionText(initialQuery)
     }
   }
 

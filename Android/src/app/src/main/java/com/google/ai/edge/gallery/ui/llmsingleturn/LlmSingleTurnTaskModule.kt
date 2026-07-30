@@ -86,6 +86,7 @@ class LlmSingleTurnTask @Inject constructor() : CustomTask {
     LlmSingleTurnScreen(
       modelManagerViewModel = myData.modelManagerViewModel,
       navigateUp = myData.onNavUp,
+      initialDraft = myData.initialDraft ?: myData.initialQuery,
     )
   }
 }

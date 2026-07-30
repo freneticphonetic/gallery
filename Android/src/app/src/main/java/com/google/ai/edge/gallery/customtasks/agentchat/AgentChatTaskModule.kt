@@ -191,6 +191,8 @@ class AgentChatTask @Inject constructor() : CustomTask {
       navigateUp = myData.onNavUp,
       agentTools = agentTools,
       initialQuery = myData.initialQuery,
+      initialDraft = myData.initialDraft,
+      startAudioRecording = myData.startAudioRecording,
     )
   }
 }
