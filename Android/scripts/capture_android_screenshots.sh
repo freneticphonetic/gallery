@@ -80,6 +80,11 @@ wait_for_app() {
   return 1
 }
 
+dump_window_hierarchy() {
+  adb shell uiautomator dump /sdcard/window-hierarchy.xml >/dev/null 2>&1 &&
+    adb exec-out cat /sdcard/window-hierarchy.xml >"$window_hierarchy"
+}
+
 dismiss_system_ui_anr() {
   local attempt
   local bounds
@@ -90,8 +95,7 @@ dismiss_system_ui_anr() {
   local y2
 
   for ((attempt = 1; attempt <= 2; attempt++)); do
-    if ! adb shell uiautomator dump /sdcard/window-hierarchy.xml >/dev/null 2>&1 ||
-      ! adb exec-out cat /sdcard/window-hierarchy.xml >"$window_hierarchy"; then
+    if ! dump_window_hierarchy; then
       echo "Unable to inspect the emulator window hierarchy."
       return 1
     fi
@@ -130,6 +134,57 @@ dismiss_system_ui_anr() {
   return 1
 }
 
+wait_for_text() {
+  local expected_text="$1"
+  local attempt
+
+  for ((attempt = 1; attempt <= 45; attempt++)); do
+    if dump_window_hierarchy &&
+      grep -Fq "text=\"$expected_text\"" "$window_hierarchy"; then
+      sleep 3
+      return 0
+    fi
+
+    if grep -q 'resource-id="android:id/aerr_wait"' "$window_hierarchy"; then
+      dismiss_system_ui_anr
+    fi
+    sleep 2
+  done
+
+  echo "Timed out waiting for visible text: $expected_text"
+  grep -o 'text="[^"]*"' "$window_hierarchy" | head -n 40 || true
+  return 1
+}
+
+tap_control() {
+  local description="$1"
+  local bounds
+  local node
+  local x1
+  local y1
+  local x2
+  local y2
+
+  dump_window_hierarchy
+  node="$(
+    grep -o "<node[^>]*content-desc=\"$description\"[^>]*/>" \
+      "$window_hierarchy" |
+      head -n 1
+  )"
+  bounds="$(
+    printf '%s\n' "$node" |
+      sed -n \
+        's/.*bounds="\[\([0-9][0-9]*\),\([0-9][0-9]*\)\]\[\([0-9][0-9]*\),\([0-9][0-9]*\)\]".*/\1 \2 \3 \4/p'
+  )"
+  if ! read -r x1 y1 x2 y2 <<<"$bounds" ||
+    [[ -z "${x1:-}" || -z "${y1:-}" || -z "${x2:-}" || -z "${y2:-}" ]]; then
+    echo "Unable to locate control: $description"
+    return 1
+  fi
+
+  adb shell input tap "$(((x1 + x2) / 2))" "$(((y1 + y2) / 2))"
+}
+
 capture_screen() {
   local file_name="$1"
   local file_size
@@ -150,15 +205,22 @@ adb shell am force-stop "$application_id"
 stay_awake
 adb shell am start -W -n "$application_id/$activity"
 wait_for_app
+wait_for_text "New chat"
 capture_screen "01-home.png"
 
-adb shell am force-stop "$application_id"
+tap_control "Open chats"
+wait_for_text "Previous chats"
+capture_screen "02-chats.png"
+adb shell input keyevent KEYCODE_BACK
+wait_for_text "New chat"
+
 stay_awake
 adb shell am start -W \
   -n "$application_id/$activity" \
   -a android.intent.action.VIEW \
   -d "com.google.ai.edge.gallery://global_model_manager"
 wait_for_app
-capture_screen "02-local-models.png"
+wait_for_text "Local models"
+capture_screen "03-local-models.png"
 
 ls -lh "$output_dir"
