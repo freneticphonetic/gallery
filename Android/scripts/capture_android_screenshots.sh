@@ -12,6 +12,8 @@ test -f "$apk_path"
 mkdir -p "$output_dir"
 
 adb wait-for-device
+adb shell input keyevent KEYCODE_WAKEUP || true
+adb shell svc power stayon true || true
 adb shell wm dismiss-keyguard || true
 adb shell input keyevent 82 || true
 adb shell settings put global window_animation_scale 0
@@ -56,11 +58,10 @@ install_apk
 wait_for_app() {
   local attempt
   for ((attempt = 1; attempt <= 45; attempt++)); do
-    if adb shell pidof "$application_id" >/dev/null 2>&1; then
+    if adb shell dumpsys activity activities 2>/dev/null |
+      grep -Eq "(mResumedActivity|topResumedActivity).*$application_id"; then
       sleep 8
-      if adb shell pidof "$application_id" >/dev/null 2>&1; then
-        return 0
-      fi
+      return 0
     fi
     sleep 2
   done
