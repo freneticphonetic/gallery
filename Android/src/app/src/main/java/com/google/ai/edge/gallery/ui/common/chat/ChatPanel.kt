@@ -148,6 +148,8 @@ fun ChatPanel(
   showStopButtonInInputWhenInProgress: Boolean = false,
   showImagePicker: Boolean = false,
   showAudioPicker: Boolean = false,
+  initialDraft: String? = null,
+  startAudioRecording: Boolean = false,
   emptyStateComposable: @Composable (Model) -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsState()
@@ -190,7 +192,7 @@ fun ChatPanel(
       audioClipMessageCount
     }
 
-  var curMessage by remember { mutableStateOf("") } // Correct state
+  var curMessage by remember(initialDraft) { mutableStateOf(initialDraft.orEmpty()) }
   val focusManager = LocalFocusManager.current
 
   // List state to control scrolling.
@@ -719,6 +721,7 @@ fun ChatPanel(
         showMcpPicker = false,
         showImagePicker = showImagePicker,
         showAudioPicker = showAudioPicker,
+        startAudioRecording = startAudioRecording,
         showStopButtonWhenInProgress = showStopButtonInInputWhenInProgress,
         onImageLimitExceeded = { showImageLimitBanner = true },
         onModelNotSupportImage = { customErrorMessage = modelNotSupportImageMsg },

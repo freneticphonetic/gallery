@@ -69,6 +69,7 @@ fun LlmSingleTurnScreen(
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
   viewModel: LlmSingleTurnViewModel = hiltViewModel(),
+  initialDraft: String? = null,
 ) {
   val task = modelManagerViewModel.getTaskById(id = BuiltInTaskId.LLM_PROMPT_LAB)!!
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
@@ -174,6 +175,7 @@ fun LlmSingleTurnScreen(
               model = selectedModel,
               viewModel = viewModel,
               modelManagerViewModel = modelManagerViewModel,
+              initialText = initialDraft,
               onSend = { fullPrompt ->
                 viewModel.generateResponse(task = task, model = selectedModel, input = fullPrompt)
 

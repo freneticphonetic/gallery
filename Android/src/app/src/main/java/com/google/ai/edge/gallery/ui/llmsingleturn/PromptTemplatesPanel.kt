@@ -112,6 +112,7 @@ fun PromptTemplatesPanel(
   model: Model,
   viewModel: LlmSingleTurnViewModel,
   modelManagerViewModel: ModelManagerViewModel,
+  initialText: String? = null,
   onSend: (fullPrompt: String) -> Unit,
   onStopButtonClicked: (Model) -> Unit,
   modifier: Modifier = Modifier,
@@ -122,7 +123,7 @@ fun PromptTemplatesPanel(
   val selectedPromptTemplateType = uiState.selectedPromptTemplateType
   val inProgress = uiState.inProgress
   var selectedTabIndex by remember { mutableIntStateOf(0) }
-  var curTextInputContent by remember { mutableStateOf("") }
+  var curTextInputContent by remember(initialText) { mutableStateOf(initialText.orEmpty()) }
   val inputEditorValues: SnapshotStateMap<String, Any> = remember {
     mutableStateMapOf(FULL_PROMPT_SWITCH_KEY to false)
   }

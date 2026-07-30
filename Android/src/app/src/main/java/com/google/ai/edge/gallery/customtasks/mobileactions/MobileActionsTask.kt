@@ -105,6 +105,7 @@ class MobileActionsTask @Inject constructor() : CustomTask {
       curActions = curActions,
       tools = tools,
       onProcessingStarted = { curActions.clear() },
+      initialQuery = customTaskData.initialQuery ?: customTaskData.initialDraft,
     )
   }
 }

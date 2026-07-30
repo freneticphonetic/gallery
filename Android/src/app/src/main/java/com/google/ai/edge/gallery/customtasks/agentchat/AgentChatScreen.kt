@@ -126,6 +126,8 @@ fun AgentChatScreen(
   skillManagerViewModel: SkillManagerViewModel = hiltViewModel(),
   mcpManagerViewModel: McpManagerViewModel = hiltViewModel(),
   initialQuery: String? = null,
+  initialDraft: String? = null,
+  startAudioRecording: Boolean = false,
 ) {
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
@@ -283,6 +285,8 @@ fun AgentChatScreen(
     onMcpClicked = { showMcpManagerBottomSheet = true },
     showImagePicker = true,
     showAudioPicker = true,
+    initialDraft = initialDraft,
+    startAudioRecording = startAudioRecording,
     getActiveSkills = {
       skillManagerViewModel.getSelectedSkills().map { skill ->
         skillManagerViewModel.getSkillShortId(skill)

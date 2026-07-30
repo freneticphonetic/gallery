@@ -1,7 +1,7 @@
-# ADR 0003: Consolidated Application Navigation
+# ADR 0003: Unified Home Composer and Consolidated Navigation
 
-- Status: Proposed
-- Date: 2026-07-24
+- Status: Accepted
+- Date: 2026-07-30
 
 ## Context
 
@@ -15,13 +15,20 @@ The project should preserve all existing tools while reducing clutter and making
 
 ## Decision
 
-Adopt a shared navigation structure for the application's major destinations.
+Make the home screen a composer-first workspace instead of a tool catalog.
 
-On phones, this may be implemented as a modal navigation drawer or another suitable compact menu.
+The home workspace provides:
 
-On larger screens, the same destinations may be presented through a permanent drawer, navigation rail, or other adaptive layout.
+- One persistent text field.
+- A `+` control that opens the complete tool and input picker.
+- A microphone control that opens Audio Scribe's local recording flow.
+- A send control.
+- A visible selected-tool and compatible-model context.
 
-The navigation structure should include the existing tools:
+The user explicitly selects the intended tool. The application does not ask a local model to infer
+which task runtime should receive a prompt.
+
+The tool picker includes every existing tool:
 
 - AI Chat.
 - Ask Image.
@@ -31,7 +38,8 @@ The navigation structure should include the existing tools:
 - Mobile Actions.
 - Tiny Garden.
 
-It should also provide access to application-level destinations such as:
+It also provides access to Local Models. Other application-level destinations remain reachable
+through the app bar or their existing navigation:
 
 - Local Models.
 - Conversations or recent activity, when available.
@@ -40,22 +48,44 @@ It should also provide access to application-level destinations such as:
 - Offline and privacy information.
 - About and licenses.
 
+### Prompt delivery
+
+Each tool retains its existing runtime, model initialization, capability checks, and specialized
+screen:
+
+| Tool | Home-composer behavior |
+| --- | --- |
+| AI Chat | Submit text after opening the compatible local model. |
+| Agent Skills | Submit text after opening the compatible local model. Images, audio, and skill selection remain available in its composer. |
+| Ask Image | Carry text forward as an editable draft so an image can be attached before sending. |
+| Audio Scribe | Carry text forward as an editable draft so audio can be recorded or attached before sending. |
+| Prompt Lab | Carry text forward as editable Prompt Lab input. |
+| Mobile Actions | Submit text to the existing constrained device-action runtime. |
+| Tiny Garden | Submit text to the existing garden runtime. |
+
+When more than one compatible model is ready, the home workspace prefers the already selected
+compatible model and otherwise uses the first ready model. The destination screen retains its
+existing model selector.
+
+The microphone control is a shortcut to Audio Scribe's recorder and local audio-capable model. It
+does not use unrestricted networking or add a new permission. Microphone permission continues to
+be requested only when recording is started.
+
 ## Home-screen role
 
-The home screen should become a contextual workspace.
-
-It may emphasize:
+The home screen is a contextual workspace. It emphasizes:
 
 - Whether a compatible model has been imported.
 - The currently selected or recently used model.
 - A clear first-run import action.
-- A primary continuation action.
-- Recent activity or conversations.
+- The selected tool and compatible model.
+- A primary text, attachment, or voice action.
 - Current offline or privacy status.
 
 The initial model-import experience must remain prominent when no models are available.
 
-Once a model is ready, first-run guidance may collapse or be replaced by more useful ongoing information.
+Once a model is ready, the tool cards are replaced by the selected-tool context and persistent
+composer.
 
 ## Capability preservation
 
@@ -63,7 +93,7 @@ Navigation consolidation must not remove tools or make them unreachable.
 
 Moving a feature into shared navigation is not equivalent to removing it.
 
-Before completing the navigation refactor:
+The navigation refactor must:
 
 1. Record every existing destination.
 2. Map each destination to its new route.
@@ -77,7 +107,9 @@ A tool without a compatible imported model may remain visible but unavailable.
 
 The interface should explain the missing requirement without repeating the same full instruction under every navigation item.
 
-The exact disabled-state interaction should be determined during implementation.
+The home composer is disabled when the selected tool has no compatible ready model and provides a
+direct Local Models action. The tool remains visible in the picker with its missing-model
+requirement.
 
 ## Consequences
 
@@ -91,13 +123,14 @@ The exact disabled-state interaction should be determined during implementation.
 
 ### Negative
 
-- Some tools will require opening navigation rather than appearing directly on the home screen.
+- Specialized tools still open their own working surface after the home composer routes the input.
+- Media prompts require a second send after the user attaches the required image or audio.
 - Navigation state and back-stack behavior will require careful testing.
 - The refactor may expose assumptions currently embedded in the home-screen implementation.
 
-## Open questions
+## Deferred work
 
-- Which tool should be the default working destination after a model is selected?
-- Should recent conversations appear on the home screen, in navigation, or both?
-- Should model selection appear in the top app bar, navigation header, or workspace content?
-- Which navigation pattern best adapts to tablets without duplicating implementation?
+- Inline home-screen attachment previews may replace the media-task handoff in a later change.
+- A dedicated imported-model speech-to-text service may eventually place dictated text directly
+  into the home field. The current microphone path keeps transcription inside Audio Scribe.
+- Recent conversations and adaptive tablet navigation remain separate design decisions.

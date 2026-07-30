@@ -82,6 +82,9 @@ The interface currently exposes these on-device tools:
 - **Mobile Actions** — Control supported device actions.
 - **Tiny Garden** — Use natural language to manage the included garden experience.
 
+Choose a tool from the home composer's `+` menu, type once, and continue in that tool's existing
+workspace. The microphone shortcut opens Audio Scribe's local recording flow.
+
 A tool remains unavailable until a model declaring compatible capabilities has been imported.
 
 Not every tool or model combination has been fully tested in this preview.
@@ -133,7 +136,7 @@ Back up important local data before replacing or uninstalling a pre-release buil
 
 ## What changed from the upstream foundation
 
-- Replaced the promotional, tabbed home page with a compact task list and clear first-run setup.
+- Replaced the promotional, tabbed home page with a unified composer and clear first-run setup.
 - Reworked model management around a single local-file import path.
 - Added visible offline and privacy status.
 - Removed Google account and terms prompts.
@@ -200,7 +203,7 @@ Back up important local data before replacing or uninstalling a pre-release buil
 
 ## What changed from the upstream foundation
 
-- Replaced the promotional, tabbed home page with a compact task list and clear first-run setup.
+- Replaced the promotional, tabbed home page with a unified composer and clear first-run setup.
 - Reworked model management around a single local-file import path.
 - Added visible offline and privacy status.
 - Removed Google account and terms prompts.

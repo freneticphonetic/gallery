@@ -142,6 +142,7 @@ class TinyGardenTask @Inject constructor() : CustomTask {
       commandFlow = commandFlow,
       setAppBarControlsDisabled = customTaskData.setAppBarControlsDisabled,
       setTopBarVisible = customTaskData.setTopBarVisible,
+      initialQuery = customTaskData.initialQuery ?: customTaskData.initialDraft,
     )
   }
 

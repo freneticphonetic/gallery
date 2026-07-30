@@ -115,6 +115,8 @@ class LlmChatTask @Inject constructor() : CustomTask {
       modelManagerViewModel = myData.modelManagerViewModel,
       navigateUp = myData.onNavUp,
       viewModel = viewModel,
+      initialQuery = myData.initialQuery,
+      initialDraft = myData.initialDraft,
       allowEditingSystemPrompt = true,
       curSystemPrompt = uiSystemPrompt,
       onSystemPromptChanged = { newPrompt ->
@@ -216,6 +218,8 @@ class LlmAskImageTask @Inject constructor() : CustomTask {
       modelManagerViewModel = myData.modelManagerViewModel,
       navigateUp = myData.onNavUp,
       viewModel = viewModel,
+      initialQuery = myData.initialQuery,
+      initialDraft = myData.initialDraft,
       allowEditingSystemPrompt = true,
       curSystemPrompt = uiSystemPrompt,
       onSystemPromptChanged = { newPrompt ->
@@ -300,6 +304,9 @@ class LlmAskAudioTask @Inject constructor() : CustomTask {
       modelManagerViewModel = myData.modelManagerViewModel,
       navigateUp = myData.onNavUp,
       viewModel = viewModel,
+      initialQuery = myData.initialQuery,
+      initialDraft = myData.initialDraft,
+      startAudioRecording = myData.startAudioRecording,
       allowEditingSystemPrompt = true,
       curSystemPrompt = uiSystemPrompt,
       onSystemPromptChanged = { newPrompt ->

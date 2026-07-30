@@ -29,7 +29,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -78,6 +84,9 @@ fun LlmChatScreen(
   onSystemPromptChanged: (String) -> Unit = {},
   emptyStateComposable: @Composable (Model) -> Unit = {},
   sendMessageTrigger: SendMessageTrigger? = null,
+  initialQuery: String? = null,
+  initialDraft: String? = null,
+  startAudioRecording: Boolean = false,
   showImagePicker: Boolean = false,
   showAudioPicker: Boolean = false,
   getActiveSkills: () -> List<String> = { emptyList() },
@@ -105,6 +114,9 @@ fun LlmChatScreen(
     onSystemPromptChanged = onSystemPromptChanged,
     emptyStateComposable = emptyStateComposable,
     sendMessageTrigger = sendMessageTrigger,
+    initialQuery = initialQuery,
+    initialDraft = initialDraft,
+    startAudioRecording = startAudioRecording,
     showImagePicker = showImagePicker,
     showAudioPicker = showAudioPicker,
     getActiveSkills = getActiveSkills,
@@ -120,6 +132,8 @@ fun LlmAskImageScreen(
   allowEditingSystemPrompt: Boolean = false,
   curSystemPrompt: String = "",
   onSystemPromptChanged: (String) -> Unit = {},
+  initialQuery: String? = null,
+  initialDraft: String? = null,
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
@@ -130,6 +144,8 @@ fun LlmAskImageScreen(
     allowEditingSystemPrompt = allowEditingSystemPrompt,
     curSystemPrompt = curSystemPrompt,
     onSystemPromptChanged = onSystemPromptChanged,
+    initialQuery = initialQuery,
+    initialDraft = initialDraft,
     showImagePicker = true,
     showAudioPicker = false,
     emptyStateComposable = { model ->
@@ -168,6 +184,9 @@ fun LlmAskAudioScreen(
   allowEditingSystemPrompt: Boolean = false,
   curSystemPrompt: String = "",
   onSystemPromptChanged: (String) -> Unit = {},
+  initialQuery: String? = null,
+  initialDraft: String? = null,
+  startAudioRecording: Boolean = false,
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
@@ -178,6 +197,9 @@ fun LlmAskAudioScreen(
     allowEditingSystemPrompt = allowEditingSystemPrompt,
     curSystemPrompt = curSystemPrompt,
     onSystemPromptChanged = onSystemPromptChanged,
+    initialQuery = initialQuery,
+    initialDraft = initialDraft,
+    startAudioRecording = startAudioRecording,
     showImagePicker = false,
     showAudioPicker = true,
     emptyStateComposable = {
@@ -220,6 +242,9 @@ fun ChatViewWrapper(
   curSystemPrompt: String = "",
   onSystemPromptChanged: (String) -> Unit = {},
   sendMessageTrigger: SendMessageTrigger? = null,
+  initialQuery: String? = null,
+  initialDraft: String? = null,
+  startAudioRecording: Boolean = false,
   showImagePicker: Boolean = false,
   showAudioPicker: Boolean = false,
   getActiveSkills: () -> List<String> = { emptyList() },
@@ -230,6 +255,30 @@ fun ChatViewWrapper(
   val context = LocalContext.current
   val task = modelManagerViewModel.getTaskById(id = taskId)!!
   val scope = rememberCoroutineScope()
+  val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
+  val selectedModel = modelManagerUiState.selectedModel
+  val modelInitializationStatus =
+    modelManagerUiState.modelInitializationStatus[selectedModel.name]
+  var initialQueryConsumed by remember(initialQuery, selectedModel.name) { mutableStateOf(false) }
+  var initialQueryTrigger by remember(initialQuery, selectedModel.name) {
+    mutableStateOf<SendMessageTrigger?>(null)
+  }
+
+  LaunchedEffect(initialQuery, modelInitializationStatus?.status, selectedModel.name) {
+    if (
+      !initialQuery.isNullOrBlank() &&
+        !initialQueryConsumed &&
+        modelInitializationStatus?.status ==
+          com.google.ai.edge.gallery.ui.modelmanager.ModelInitializationStatusType.INITIALIZED
+    ) {
+      initialQueryConsumed = true
+      initialQueryTrigger =
+        SendMessageTrigger(
+          model = selectedModel,
+          messages = listOf(ChatMessageText(content = initialQuery, side = ChatSide.USER)),
+        )
+    }
+  }
 
   ChatView(
     task = task,
@@ -349,7 +398,9 @@ fun ChatViewWrapper(
     allowEditingSystemPrompt = allowEditingSystemPrompt,
     curSystemPrompt = curSystemPrompt,
     onSystemPromptChanged = onSystemPromptChanged,
-    sendMessageTrigger = sendMessageTrigger,
+    sendMessageTrigger = sendMessageTrigger ?: initialQueryTrigger,
+    initialDraft = initialDraft,
+    startAudioRecording = startAudioRecording,
     showAudioPicker = showAudioPicker,
   )
 }

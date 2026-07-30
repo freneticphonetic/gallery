@@ -144,6 +144,8 @@ fun ChatView(
   curSystemPrompt: String = "",
   onSystemPromptChanged: (String) -> Unit = {},
   sendMessageTrigger: SendMessageTrigger? = null,
+  initialDraft: String? = null,
+  startAudioRecording: Boolean = false,
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
@@ -407,6 +409,8 @@ fun ChatView(
                       showStopButtonInInputWhenInProgress = showStopButtonInInputWhenInProgress,
                       showImagePicker = showImagePicker,
                       showAudioPicker = showAudioPicker,
+                      initialDraft = initialDraft,
+                      startAudioRecording = startAudioRecording,
                       emptyStateComposable = emptyStateComposable,
                     )
                   // Model download
