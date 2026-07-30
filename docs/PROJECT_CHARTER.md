@@ -70,7 +70,7 @@ It does not need to display every tool as a full-size card at all times.
 
 The application may use shared navigation, such as a drawer or adaptive navigation panel, to provide access to:
 
-- AI Chat.
+- Chat.
 - Ask Image.
 - Audio Scribe.
 - Prompt Lab.

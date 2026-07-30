@@ -22,11 +22,12 @@ import org.junit.Test
 
 class HomeScreenTest {
   @Test
-  fun mediaAndPromptLabInputsArePrefilled() {
+  fun chatAdditionsAndPromptLabInputsArePrefilled() {
     val taskIds =
       listOf(
         BuiltInTaskId.LLM_ASK_IMAGE,
         BuiltInTaskId.LLM_ASK_AUDIO,
+        BuiltInTaskId.LLM_AGENT_CHAT,
         BuiltInTaskId.LLM_PROMPT_LAB,
       )
 
@@ -40,7 +41,6 @@ class HomeScreenTest {
     val taskIds =
       listOf(
         BuiltInTaskId.LLM_CHAT,
-        BuiltInTaskId.LLM_AGENT_CHAT,
         BuiltInTaskId.LLM_MOBILE_ACTIONS,
         BuiltInTaskId.LLM_TINY_GARDEN,
       )

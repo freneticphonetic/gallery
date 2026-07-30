@@ -248,8 +248,8 @@
   <string name="mobile_actions_challenge_load_model" translatable="true">Load Model</string>
 
   <!-- Strings for skills -->
-  <string name="aichat_emptystate_title" translatable="true">AI Chat</string>
-  <string name="aichat_emptystate_content" translatable="true">Chat with on-device large language models.</string>
+  <string name="aichat_emptystate_title" translatable="true">New chat</string>
+  <string name="aichat_emptystate_content" translatable="true">Start with a message, image, audio recording, or local skill.</string>
   <string name="add_script" translatable="true">Add script</string>
   <string name="add_default_script" translatable="true">Add default script</string>
   <string name="add_skill" translatable="true">Add skill</string>
@@ -374,13 +374,15 @@
 
   <!-- Strings for ChatHistorySideSheet component (used for the chat history side bar) -->
   <!-- Displayed as the header and section title for the user's past chats. -->
-  <string name="chat_history_title" translatable="true">Chat history</string>
+  <string name="chat_history_title" translatable="true">Chats</string>
+  <string name="chat_history_section_title" translatable="true">Previous chats</string>
+  <string name="chat_history_empty" translatable="true">Your saved chats will appear here.</string>
   <!-- Displayed on the button to clear and start a new chat session. -->
   <string name="new_chat" translatable="true">New chat</string>
   <!-- Displayed to clear all current chat history items from the list. -->
   <string name="clear_all" translatable="true">Clear all</string>
   <!-- Displayed as a persistent notice at the bottom of the side bar regarding demo usage. -->
-  <string name="chat_history_demo_notice" translatable="true">Chat history does not persist across demos.</string>
+  <string name="chat_history_demo_notice" translatable="true">Saved only on this device.</string>
   <!-- Title for warning dialog before clearing chat history. -->
   <string name="clear_history_dialog_title" translatable="true">Clear history?</string>
   <!-- Content descriptive text for the clear history warning dialog. -->
@@ -494,6 +496,6 @@
   <!-- Content description spoken when the "scroll to bottom" button is focused. [CHAR_LIMIT=NONE] -->
   <string name="cd_scroll_to_bottom">Scroll to bottom</string>
   <!-- Content description spoken when the "chat history" icon is focused. [CHAR_LIMIT=NONE] -->
-  <string name="cd_chat_history">Chat history</string>
+  <string name="cd_chat_history">Chats</string>
 
 </resources>

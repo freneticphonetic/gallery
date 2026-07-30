@@ -101,24 +101,36 @@ fun ChatHistorySideSheetContent(
       }
     }
 
-    // Subheading Row: Chat history and Clear all button
+    // Subheading Row: saved chats and Clear all button
     Row(
       modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
       horizontalArrangement = Arrangement.SpaceBetween,
       verticalAlignment = Alignment.CenterVertically,
     ) {
       Text(
-        stringResource(R.string.chat_history_title),
+        stringResource(R.string.chat_history_section_title),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
-      TextButton(onClick = { showConfirmDeleteDialog = true }) {
-        Text(stringResource(R.string.clear_all))
+      if (history.isNotEmpty()) {
+        TextButton(onClick = { showConfirmDeleteDialog = true }) {
+          Text(stringResource(R.string.clear_all))
+        }
       }
     }
 
     // History list
     LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+      if (history.isEmpty()) {
+        item {
+          Text(
+            text = stringResource(R.string.chat_history_empty),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(vertical = 12.dp),
+          )
+        }
+      }
       items(history) { session ->
         Row(
           modifier =

@@ -74,7 +74,7 @@ Performance and compatibility vary by model, Android device, and selected accele
 
 The interface currently exposes these on-device tools:
 
-- **AI Chat** — Chat with a compatible local language model.
+- **Chat** — Chat with a compatible local language model.
 - **Prompt Lab** — Run single-turn prompts and experiments.
 - **Ask Image** — Ask questions about images using a compatible multimodal model.
 - **Audio Scribe** — Transcribe or translate audio with a compatible model.
@@ -82,8 +82,11 @@ The interface currently exposes these on-device tools:
 - **Mobile Actions** — Control supported device actions.
 - **Tiny Garden** — Use natural language to manage the included garden experience.
 
-Choose a tool from the home composer's `+` menu, type once, and continue in that tool's existing
-workspace. The microphone shortcut opens Audio Scribe's local recording flow.
+Chat is the default workspace. Its `+` menu groups Image, Audio, and Skills as things to add to a
+chat, while Prompt Lab, Mobile Actions, and Tiny Garden remain available under **More tools**. The
+microphone shortcut opens Audio Scribe's local recording flow.
+
+The home screen also provides a left-side **Chats** drawer for conversations saved on the device.
 
 A tool remains unavailable until a model declaring compatible capabilities has been imported.
 
@@ -136,7 +139,8 @@ Back up important local data before replacing or uninstalling a pre-release buil
 
 ## What changed from the upstream foundation
 
-- Replaced the promotional, tabbed home page with a unified composer and clear first-run setup.
+- Replaced the promotional, tabbed home page with a compact Chat-first composer, local status row,
+  and saved-chat drawer.
 - Reworked model management around a single local-file import path.
 - Added visible offline and privacy status.
 - Removed Google account and terms prompts.

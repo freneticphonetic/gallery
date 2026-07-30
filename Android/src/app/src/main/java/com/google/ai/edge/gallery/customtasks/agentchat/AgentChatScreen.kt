@@ -128,6 +128,7 @@ fun AgentChatScreen(
   initialQuery: String? = null,
   initialDraft: String? = null,
   startAudioRecording: Boolean = false,
+  initialSessionId: String? = null,
 ) {
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
@@ -287,6 +288,7 @@ fun AgentChatScreen(
     showAudioPicker = true,
     initialDraft = initialDraft,
     startAudioRecording = startAudioRecording,
+    initialSessionId = initialSessionId,
     getActiveSkills = {
       skillManagerViewModel.getSelectedSkills().map { skill ->
         skillManagerViewModel.getSkillShortId(skill)

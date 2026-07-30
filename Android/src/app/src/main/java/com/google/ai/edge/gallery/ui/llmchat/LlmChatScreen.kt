@@ -87,6 +87,7 @@ fun LlmChatScreen(
   initialQuery: String? = null,
   initialDraft: String? = null,
   startAudioRecording: Boolean = false,
+  initialSessionId: String? = null,
   showImagePicker: Boolean = false,
   showAudioPicker: Boolean = false,
   getActiveSkills: () -> List<String> = { emptyList() },
@@ -117,6 +118,7 @@ fun LlmChatScreen(
     initialQuery = initialQuery,
     initialDraft = initialDraft,
     startAudioRecording = startAudioRecording,
+    initialSessionId = initialSessionId,
     showImagePicker = showImagePicker,
     showAudioPicker = showAudioPicker,
     getActiveSkills = getActiveSkills,
@@ -134,6 +136,7 @@ fun LlmAskImageScreen(
   onSystemPromptChanged: (String) -> Unit = {},
   initialQuery: String? = null,
   initialDraft: String? = null,
+  initialSessionId: String? = null,
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
@@ -146,6 +149,7 @@ fun LlmAskImageScreen(
     onSystemPromptChanged = onSystemPromptChanged,
     initialQuery = initialQuery,
     initialDraft = initialDraft,
+    initialSessionId = initialSessionId,
     showImagePicker = true,
     showAudioPicker = false,
     emptyStateComposable = { model ->
@@ -187,6 +191,7 @@ fun LlmAskAudioScreen(
   initialQuery: String? = null,
   initialDraft: String? = null,
   startAudioRecording: Boolean = false,
+  initialSessionId: String? = null,
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
@@ -200,6 +205,7 @@ fun LlmAskAudioScreen(
     initialQuery = initialQuery,
     initialDraft = initialDraft,
     startAudioRecording = startAudioRecording,
+    initialSessionId = initialSessionId,
     showImagePicker = false,
     showAudioPicker = true,
     emptyStateComposable = {
@@ -245,6 +251,7 @@ fun ChatViewWrapper(
   initialQuery: String? = null,
   initialDraft: String? = null,
   startAudioRecording: Boolean = false,
+  initialSessionId: String? = null,
   showImagePicker: Boolean = false,
   showAudioPicker: Boolean = false,
   getActiveSkills: () -> List<String> = { emptyList() },
@@ -401,6 +408,7 @@ fun ChatViewWrapper(
     sendMessageTrigger = sendMessageTrigger ?: initialQueryTrigger,
     initialDraft = initialDraft,
     startAudioRecording = startAudioRecording,
+    initialSessionId = initialSessionId,
     showAudioPicker = showAudioPicker,
   )
 }
