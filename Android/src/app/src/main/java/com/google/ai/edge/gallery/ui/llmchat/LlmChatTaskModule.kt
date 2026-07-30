@@ -58,13 +58,13 @@ import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// AI Chat.
+// Chat.
 
 class LlmChatTask @Inject constructor() : CustomTask {
   override val task: Task =
     Task(
       id = BuiltInTaskId.LLM_CHAT,
-      label = "AI Chat",
+      label = "Chat",
       category = Category.LLM,
       icon = Icons.Outlined.Forum,
       models = mutableListOf(),
@@ -117,6 +117,7 @@ class LlmChatTask @Inject constructor() : CustomTask {
       viewModel = viewModel,
       initialQuery = myData.initialQuery,
       initialDraft = myData.initialDraft,
+      initialSessionId = myData.initialSessionId,
       allowEditingSystemPrompt = true,
       curSystemPrompt = uiSystemPrompt,
       onSystemPromptChanged = { newPrompt ->
@@ -220,6 +221,7 @@ class LlmAskImageTask @Inject constructor() : CustomTask {
       viewModel = viewModel,
       initialQuery = myData.initialQuery,
       initialDraft = myData.initialDraft,
+      initialSessionId = myData.initialSessionId,
       allowEditingSystemPrompt = true,
       curSystemPrompt = uiSystemPrompt,
       onSystemPromptChanged = { newPrompt ->
@@ -307,6 +309,7 @@ class LlmAskAudioTask @Inject constructor() : CustomTask {
       initialQuery = myData.initialQuery,
       initialDraft = myData.initialDraft,
       startAudioRecording = myData.startAudioRecording,
+      initialSessionId = myData.initialSessionId,
       allowEditingSystemPrompt = true,
       curSystemPrompt = uiSystemPrompt,
       onSystemPromptChanged = { newPrompt ->

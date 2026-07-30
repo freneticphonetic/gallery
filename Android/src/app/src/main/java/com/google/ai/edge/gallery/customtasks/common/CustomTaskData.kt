@@ -42,6 +42,7 @@ data class CustomTaskData(
   val initialQuery: String? = null,
   val initialDraft: String? = null,
   val startAudioRecording: Boolean = false,
+  val initialSessionId: String? = null,
 )
 
 data class CustomTaskDataForBuiltinTask(
@@ -53,4 +54,6 @@ data class CustomTaskDataForBuiltinTask(
   val initialDraft: String? = null,
   // Whether an audio-capable composer should open its recorder on first launch.
   val startAudioRecording: Boolean = false,
+  // A locally saved chat session to restore after the model is initialized.
+  val initialSessionId: String? = null,
 )

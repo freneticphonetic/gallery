@@ -20,29 +20,34 @@ Make the home screen a composer-first workspace instead of a tool catalog.
 The home workspace provides:
 
 - One persistent text field.
-- A `+` control that opens the complete tool and input picker.
+- Chat as the default text runtime.
+- A `+` control that opens grouped inputs and specialized tools.
 - A microphone control that opens Audio Scribe's local recording flow.
 - A send control.
-- A visible selected-tool and compatible-model context.
+- A compact compatible-model context.
+- A left-side drawer containing chats saved on the device.
 
-The user explicitly selects the intended tool. The application does not ask a local model to infer
-which task runtime should receive a prompt.
+Normal text submission goes to Chat. The user explicitly selects any specialized runtime from the
+`+` menu; the application does not ask a local model to infer which runtime should receive a
+prompt.
 
-The tool picker includes every existing tool:
+The picker consolidates chat-like capabilities under **Add to chat**:
 
-- AI Chat.
-- Ask Image.
-- Audio Scribe.
+- Image, backed by Ask Image.
+- Audio, backed by Audio Scribe.
+- Skills, backed by Agent Skills.
+
+It keeps distinct experiences under **More tools**:
+
 - Prompt Lab.
-- Agent Skills.
 - Mobile Actions.
 - Tiny Garden.
 
-It also provides access to Local Models. Other application-level destinations remain reachable
-through the app bar or their existing navigation:
+It also provides access to Local Models. Every existing runtime remains reachable. Other
+application-level destinations remain reachable through the app bar or their existing navigation:
 
 - Local Models.
-- Conversations or recent activity, when available.
+- Saved conversations.
 - Permissions.
 - Settings.
 - Offline and privacy information.
@@ -55,8 +60,8 @@ screen:
 
 | Tool | Home-composer behavior |
 | --- | --- |
-| AI Chat | Submit text after opening the compatible local model. |
-| Agent Skills | Submit text after opening the compatible local model. Images, audio, and skill selection remain available in its composer. |
+| Chat | Submit text after opening the compatible local model. |
+| Agent Skills | Carry text forward as an editable draft. Images, audio, and skill selection remain available in its composer. |
 | Ask Image | Carry text forward as an editable draft so an image can be attached before sending. |
 | Audio Scribe | Carry text forward as an editable draft so audio can be recorded or attached before sending. |
 | Prompt Lab | Carry text forward as editable Prompt Lab input. |
@@ -77,15 +82,14 @@ The home screen is a contextual workspace. It emphasizes:
 
 - Whether a compatible model has been imported.
 - The currently selected or recently used model.
-- A clear first-run import action.
-- The selected tool and compatible model.
+- A compact first-run import action.
+- Chat and its compatible model.
 - A primary text, attachment, or voice action.
 - Current offline or privacy status.
+- Locally saved conversations in a left drawer.
 
-The initial model-import experience must remain prominent when no models are available.
-
-Once a model is ready, the tool cards are replaced by the selected-tool context and persistent
-composer.
+The offline notice, local-model count, and first-model import action share one compact status row.
+The import path remains directly reachable without occupying most of the first screen.
 
 ## Capability preservation
 
@@ -107,9 +111,9 @@ A tool without a compatible imported model may remain visible but unavailable.
 
 The interface should explain the missing requirement without repeating the same full instruction under every navigation item.
 
-The home composer is disabled when the selected tool has no compatible ready model and provides a
-direct Local Models action. The tool remains visible in the picker with its missing-model
-requirement.
+The home composer is disabled when Chat has no compatible ready model and provides a direct Local
+Models action. Specialized tools remain visible in the picker with their missing-model
+requirements.
 
 ## Consequences
 
@@ -126,6 +130,8 @@ requirement.
 - Specialized tools still open their own working surface after the home composer routes the input.
 - Media prompts require a second send after the user attaches the required image or audio.
 - Navigation state and back-stack behavior will require careful testing.
+- Reopening a saved chat depends on its task still existing and at least one compatible model being
+  ready.
 - The refactor may expose assumptions currently embedded in the home-screen implementation.
 
 ## Deferred work
@@ -133,4 +139,4 @@ requirement.
 - Inline home-screen attachment previews may replace the media-task handoff in a later change.
 - A dedicated imported-model speech-to-text service may eventually place dictated text directly
   into the home field. The current microphone path keeps transcription inside Audio Scribe.
-- Recent conversations and adaptive tablet navigation remain separate design decisions.
+- Adaptive tablet navigation and cross-tool history search remain separate design decisions.

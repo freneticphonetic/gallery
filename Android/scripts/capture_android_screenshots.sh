@@ -11,45 +11,216 @@ activity="com.google.ai.edge.gallery.MainActivity"
 test -f "$apk_path"
 mkdir -p "$output_dir"
 
+stay_awake() {
+  adb shell input keyevent KEYCODE_WAKEUP || true
+  adb shell svc power stayon true || true
+  adb shell wm dismiss-keyguard || true
+  adb shell input keyevent 82 || true
+}
+
 adb wait-for-device
-adb shell wm dismiss-keyguard || true
-adb shell input keyevent 82 || true
+stay_awake
 adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
-adb install -r "$apk_path"
+
+wait_for_package_manager() {
+  local attempt
+  for ((attempt = 1; attempt <= 30; attempt++)); do
+    if adb shell cmd package path android >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+
+  adb shell service list | grep package || true
+  return 1
+}
+
+install_apk() {
+  local attempt
+  for ((attempt = 1; attempt <= 3; attempt++)); do
+    if adb install --no-streaming -r "$apk_path"; then
+      return 0
+    fi
+
+    if ((attempt < 3)); then
+      echo "APK install attempt $attempt failed; reconnecting to the emulator."
+      adb reconnect || true
+      adb wait-for-device
+      sleep 5
+      wait_for_package_manager
+    fi
+  done
+
+  return 1
+}
+
+wait_for_package_manager
+install_apk
+
+window_hierarchy="$(mktemp)"
+trap 'rm -f "$window_hierarchy"' EXIT
 
 wait_for_app() {
   local attempt
-  for ((attempt = 1; attempt <= 30; attempt++)); do
-    if adb shell dumpsys window windows | grep -q "mCurrentFocus.*$application_id"; then
-      sleep 4
+  for ((attempt = 1; attempt <= 45; attempt++)); do
+    if adb shell dumpsys activity activities 2>/dev/null |
+      grep -Eq "(mResumedActivity|topResumedActivity).*$application_id"; then
+      sleep 8
       return 0
     fi
-    sleep 1
+    sleep 2
   done
 
-  adb shell dumpsys window windows | grep -E "mCurrentFocus|mFocusedApp" || true
+  adb shell dumpsys activity activities |
+    grep -E "mResumedActivity|topResumedActivity|mFocusedApp" || true
+  adb logcat -d -t 300 |
+    grep -E "AndroidRuntime|FATAL EXCEPTION|Process: $application_id" || true
   return 1
+}
+
+dump_window_hierarchy() {
+  adb shell uiautomator dump /sdcard/window-hierarchy.xml >/dev/null 2>&1 &&
+    adb exec-out cat /sdcard/window-hierarchy.xml >"$window_hierarchy"
+}
+
+dismiss_system_ui_anr() {
+  local attempt
+  local bounds
+  local node
+  local x1
+  local y1
+  local x2
+  local y2
+
+  for ((attempt = 1; attempt <= 2; attempt++)); do
+    if ! dump_window_hierarchy; then
+      echo "Unable to inspect the emulator window hierarchy."
+      return 1
+    fi
+
+    if ! grep -q 'resource-id="android:id/aerr_wait"' "$window_hierarchy"; then
+      return 0
+    fi
+
+    if ! grep -Eqi 'System UI[^"]*(isn.t|not) responding' "$window_hierarchy"; then
+      echo "An unexpected application-not-responding dialog is covering the app."
+      return 1
+    fi
+
+    node="$(
+      grep -o '<node[^>]*resource-id="android:id/aerr_wait"[^>]*/>' \
+        "$window_hierarchy" |
+        head -n 1
+    )"
+    bounds="$(
+      printf '%s\n' "$node" |
+        sed -n \
+          's/.*bounds="\[\([0-9][0-9]*\),\([0-9][0-9]*\)\]\[\([0-9][0-9]*\),\([0-9][0-9]*\)\]".*/\1 \2 \3 \4/p'
+    )"
+    if ! read -r x1 y1 x2 y2 <<<"$bounds" ||
+      [[ -z "${x1:-}" || -z "${y1:-}" || -z "${x2:-}" || -z "${y2:-}" ]]; then
+      echo "Unable to locate the System UI dialog's Wait button."
+      return 1
+    fi
+
+    echo "Dismissing hosted-emulator System UI ANR dialog."
+    adb shell input tap "$(((x1 + x2) / 2))" "$(((y1 + y2) / 2))"
+    sleep 5
+  done
+
+  echo "System UI ANR dialog is still covering the app."
+  return 1
+}
+
+wait_for_text() {
+  local expected_text="$1"
+  local attempt
+
+  for ((attempt = 1; attempt <= 45; attempt++)); do
+    if dump_window_hierarchy &&
+      grep -Fq "text=\"$expected_text\"" "$window_hierarchy"; then
+      sleep 3
+      return 0
+    fi
+
+    if grep -q 'resource-id="android:id/aerr_wait"' "$window_hierarchy"; then
+      dismiss_system_ui_anr
+    fi
+    sleep 2
+  done
+
+  echo "Timed out waiting for visible text: $expected_text"
+  grep -o 'text="[^"]*"' "$window_hierarchy" | head -n 40 || true
+  return 1
+}
+
+tap_control() {
+  local description="$1"
+  local bounds
+  local node
+  local x1
+  local y1
+  local x2
+  local y2
+
+  dump_window_hierarchy
+  node="$(
+    grep -o "<node[^>]*content-desc=\"$description\"[^>]*/>" \
+      "$window_hierarchy" |
+      head -n 1
+  )"
+  bounds="$(
+    printf '%s\n' "$node" |
+      sed -n \
+        's/.*bounds="\[\([0-9][0-9]*\),\([0-9][0-9]*\)\]\[\([0-9][0-9]*\),\([0-9][0-9]*\)\]".*/\1 \2 \3 \4/p'
+  )"
+  if ! read -r x1 y1 x2 y2 <<<"$bounds" ||
+    [[ -z "${x1:-}" || -z "${y1:-}" || -z "${x2:-}" || -z "${y2:-}" ]]; then
+    echo "Unable to locate control: $description"
+    return 1
+  fi
+
+  adb shell input tap "$(((x1 + x2) / 2))" "$(((y1 + y2) / 2))"
 }
 
 capture_screen() {
   local file_name="$1"
+  local file_size
+  stay_awake
+  dismiss_system_ui_anr
+  sleep 2
   adb exec-out screencap -p > "$output_dir/$file_name"
   test -s "$output_dir/$file_name"
+  file_size="$(wc -c < "$output_dir/$file_name")"
+  if ((file_size < 20000)); then
+    echo "Captured frame is unexpectedly small ($file_size bytes)."
+    adb shell dumpsys power | grep -E "mWakefulness|Display Power" || true
+    return 1
+  fi
 }
 
 adb shell am force-stop "$application_id"
+stay_awake
 adb shell am start -W -n "$application_id/$activity"
 wait_for_app
+wait_for_text "New chat"
 capture_screen "01-home.png"
 
-adb shell am force-stop "$application_id"
+tap_control "Open chats"
+wait_for_text "Previous chats"
+capture_screen "02-chats.png"
+adb shell input keyevent KEYCODE_BACK
+wait_for_text "New chat"
+
+stay_awake
 adb shell am start -W \
   -n "$application_id/$activity" \
   -a android.intent.action.VIEW \
   -d "com.google.ai.edge.gallery://global_model_manager"
 wait_for_app
-capture_screen "02-local-models.png"
+wait_for_text "Local models"
+capture_screen "03-local-models.png"
 
 ls -lh "$output_dir"

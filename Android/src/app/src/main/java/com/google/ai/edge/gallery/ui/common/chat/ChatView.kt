@@ -146,6 +146,7 @@ fun ChatView(
   sendMessageTrigger: SendMessageTrigger? = null,
   initialDraft: String? = null,
   startAudioRecording: Boolean = false,
+  initialSessionId: String? = null,
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
@@ -179,6 +180,42 @@ fun ChatView(
   }
   val scope = rememberCoroutineScope()
   var navigatingUp by remember { mutableStateOf(false) }
+  var initialSessionConsumed by remember(initialSessionId, selectedModel.name) {
+    mutableStateOf(false)
+  }
+
+  val restoreSession: (String) -> Unit = { sessionId ->
+    val session = historySessions.firstOrNull { it.sessionId == sessionId }
+    if (session != null) {
+      Log.d(
+        TAG,
+        "Analytics: chat_history, action=load_past_chat, capability_name=${task.id}, model_id=${selectedModel.name}, model_version=${selectedModel.version}",
+      )
+      firebaseAnalytics?.logEvent(
+        GalleryEvent.CHAT_HISTORY.id,
+        Bundle().apply {
+          putString("action", "load_past_chat")
+          putString("capability_name", task.id)
+          putString("model_id", selectedModel.name)
+          putString("model_version", selectedModel.version)
+        },
+      )
+
+      scope.launch {
+        viewModel.setIsResettingSession(true)
+        val messages =
+          withContext(Dispatchers.IO) { deserializeProtoMessages(session.messagesList) }
+        viewModel.clearAllMessages(selectedModel)
+        for (msg in messages) {
+          viewModel.addMessage(selectedModel, msg)
+        }
+        onResetSessionClicked(selectedModel, messages, /* clearHistory= */ false) {
+          viewModel.setIsResettingSession(false)
+        }
+        viewModel.currentSessionId = session.sessionId
+      }
+    }
+  }
 
   val handleNavigateUp = {
     navigatingUp = true
@@ -207,6 +244,25 @@ fun ChatView(
     sendMessageTrigger?.let { trigger -> onSendMessage(trigger.model, trigger.messages) }
   }
 
+  val modelInitializationStatus =
+    modelManagerUiState.modelInitializationStatus[selectedModel.name]?.status
+  LaunchedEffect(
+    initialSessionId,
+    historySessions,
+    modelInitializationStatus,
+    selectedModel.name,
+  ) {
+    if (
+      !initialSessionId.isNullOrBlank() &&
+        !initialSessionConsumed &&
+        modelInitializationStatus == ModelInitializationStatusType.INITIALIZED &&
+        historySessions.any { it.sessionId == initialSessionId }
+    ) {
+      initialSessionConsumed = true
+      initialSessionId?.let(restoreSession)
+    }
+  }
+
   // Handle system's edge swipe.
   BackHandler {
     val modelInitializationStatus =
@@ -220,7 +276,7 @@ fun ChatView(
     }
   }
 
-  CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+  CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
     ModalNavigationDrawer(
       drawerState = drawerState,
       drawerContent = {
@@ -229,36 +285,7 @@ fun ChatView(
             ChatHistorySideSheetContent(
               history = historySessions,
               onHistoryItemClicked = { sessionId ->
-                val session = historySessions.firstOrNull { it.sessionId == sessionId }
-                if (session != null) {
-                  Log.d(
-                    TAG,
-                    "Analytics: chat_history, action=load_past_chat, capability_name=${task.id}, model_id=${selectedModel.name}, model_version=${selectedModel.version}",
-                  )
-                  firebaseAnalytics?.logEvent(
-                    GalleryEvent.CHAT_HISTORY.id,
-                    Bundle().apply {
-                      putString("action", "load_past_chat")
-                      putString("capability_name", task.id)
-                      putString("model_id", selectedModel.name)
-                      putString("model_version", selectedModel.version)
-                    },
-                  )
-
-                  scope.launch {
-                    viewModel.setIsResettingSession(true)
-                    val messages =
-                      withContext(Dispatchers.IO) { deserializeProtoMessages(session.messagesList) }
-                    viewModel.clearAllMessages(selectedModel)
-                    for (msg in messages) {
-                      viewModel.addMessage(selectedModel, msg)
-                    }
-                    onResetSessionClicked(selectedModel, messages, /* clearHistory= */ false) {
-                      viewModel.setIsResettingSession(false)
-                    }
-                    viewModel.currentSessionId = session.sessionId
-                  }
-                }
+                restoreSession(sessionId)
                 scope.launch { drawerState.close() }
               },
               onHistoryItemDeleted = { sessionId ->
@@ -298,7 +325,7 @@ fun ChatView(
           }
         }
       },
-      gesturesEnabled = drawerState.isOpen,
+      gesturesEnabled = true,
     ) {
       CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Scaffold(

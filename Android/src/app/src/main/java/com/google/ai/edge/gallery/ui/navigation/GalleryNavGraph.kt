@@ -116,6 +116,9 @@ private fun modelRoute(request: HomeLaunchRequest): String {
   if (request.startAudioRecording) {
     parameters += "record=true"
   }
+  request.initialSessionId?.takeIf { it.isNotBlank() }?.let { sessionId ->
+    parameters += "session=${Uri.encode(sessionId)}"
+  }
   return if (parameters.isEmpty()) route else "$route?${parameters.joinToString("&")}"
 }
 
@@ -261,7 +264,7 @@ fun GalleryNavHost(
     // Model page.
     composable(
       route =
-        "$ROUTE_MODEL/{taskId}/{modelName}?query={query}&draft={draft}&record={record}",
+        "$ROUTE_MODEL/{taskId}/{modelName}?query={query}&draft={draft}&record={record}&session={session}",
       arguments =
         listOf(
           navArgument("taskId") { type = NavType.StringType },
@@ -280,6 +283,11 @@ fun GalleryNavHost(
             type = NavType.BoolType
             defaultValue = false
           },
+          navArgument("session") {
+            type = NavType.StringType
+            nullable = true
+            defaultValue = null
+          },
         ),
       enterTransition = { slideEnter() },
       exitTransition = { slideExit() },
@@ -289,6 +297,7 @@ fun GalleryNavHost(
       val queryParam = backStackEntry.arguments?.getString("query")
       val draftParam = backStackEntry.arguments?.getString("draft")
       val startAudioRecording = backStackEntry.arguments?.getBoolean("record") ?: false
+      val initialSessionId = backStackEntry.arguments?.getString("session")
       val scope = rememberCoroutineScope()
       val context = LocalContext.current
 
@@ -313,6 +322,7 @@ fun GalleryNavHost(
                   initialQuery = queryParam,
                   initialDraft = draftParam,
                   startAudioRecording = startAudioRecording,
+                  initialSessionId = initialSessionId,
                 )
             )
           } else {
@@ -359,6 +369,7 @@ fun GalleryNavHost(
                     initialQuery = queryParam,
                     initialDraft = draftParam,
                     startAudioRecording = startAudioRecording,
+                    initialSessionId = initialSessionId,
                   )
               )
             }

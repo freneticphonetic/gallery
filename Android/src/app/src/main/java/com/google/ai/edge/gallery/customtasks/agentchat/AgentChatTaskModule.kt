@@ -193,6 +193,7 @@ class AgentChatTask @Inject constructor() : CustomTask {
       initialQuery = myData.initialQuery,
       initialDraft = myData.initialDraft,
       startAudioRecording = myData.startAudioRecording,
+      initialSessionId = myData.initialSessionId,
     )
   }
 }
